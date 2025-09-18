@@ -6,10 +6,10 @@ from wtforms.widgets import TextArea, CheckboxInput, ListWidget
 class OperatorForm(FlaskForm):
     name = StringField('Operator Name', validators=[DataRequired(), Length(min=2, max=100)])
     code = StringField('Operator Code', validators=[DataRequired(), Length(min=2, max=10)])
-    description = TextAreaField('Description')
+    contact_person = StringField('Contact Person', validators=[Optional(), Length(max=100)])
     logo_url = StringField('Logo URL', validators=[Optional(), URL(message='Please enter a valid URL')])
-    contact_email = StringField('Contact Email', validators=[Optional(), Email()])
-    contact_phone = StringField('Contact Phone', validators=[Optional(), Length(max=20)])
+    email = StringField('Email', validators=[Optional(), Email()])
+    phone = StringField('Phone', validators=[Optional(), Length(max=20)])
     address = TextAreaField('Address')
     is_active = BooleanField('Active', default=True)
 
