@@ -1,0 +1,264 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>{{ title }}</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_bp.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_bp.buses') }}">Buses</a></li>
+                    <li class="breadcrumb-item active">{{ title }}</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-bus mr-2"></i>Bulk Bus Creation
+                </h3>
+                <p class="text-muted mt-2 mb-0">Create multiple buses with automatic plate generation and assign to multiple agencies</p>
+            </div>
+            
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                <div class="card-body">
+                    
+                    <!-- Bus Model Information -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="text-primary mb-3">
+                                <i class="fas fa-cog mr-2"></i>Bus Model Configuration
+                            </h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.model_name.label(class="form-label") }}
+                                {{ form.model_name(class="form-control", placeholder="e.g., VIP Coach 2025") }}
+                                {% if form.model_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.model_name.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.bus_type_id.label(class="form-label") }}
+                                {{ form.bus_type_id(class="form-select") }}
+                                {% if form.bus_type_id.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.bus_type_id.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.capacity.label(class="form-label") }}
+                                {{ form.capacity(class="form-control", min="10", max="100") }}
+                                {% if form.capacity.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.capacity.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.seats_per_row.label(class="form-label") }}
+                                {{ form.seats_per_row(class="form-control", min="2", max="5") }}
+                                <small class="text-muted">2+2=4, 2+1=3, etc.</small>
+                                {% if form.seats_per_row.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.seats_per_row.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.quantity_per_operator.label(class="form-label") }}
+                                {{ form.quantity_per_operator(class="form-control", min="1", max="50") }}
+                                <small class="text-muted">Per selected agency</small>
+                                {% if form.quantity_per_operator.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.quantity_per_operator.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-group">
+                                {{ form.model_description.label(class="form-label") }}
+                                {{ form.model_description(class="form-control", rows="3", placeholder="Optional description...") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Agency Assignment -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="text-primary mb-3">
+                                <i class="fas fa-users mr-2"></i>Agency Assignment
+                            </h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-group">
+                                {{ form.operator_assignments.label(class="form-label") }}
+                                <div class="row">
+                                    {% for value, label in form.operator_assignments.choices %}
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="operator_assignments" value="{{ value }}" id="operator_{{ value }}">
+                                            <label class="form-check-label" for="operator_{{ value }}">
+                                                {{ label }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% if form.operator_assignments.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.operator_assignments.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Plate Number Configuration -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h5 class="text-primary mb-3">
+                                <i class="fas fa-id-card mr-2"></i>Plate Number Configuration
+                                <small class="text-muted">(Cameroonian Format: SW 1234 AB)</small>
+                            </h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.region_code.label(class="form-label") }}
+                                {{ form.region_code(class="form-select") }}
+                                {% if form.region_code.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.region_code.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.starting_number.label(class="form-label") }}
+                                {{ form.starting_number(class="form-control", min="1", max="9999") }}
+                                <small class="text-muted">Will auto-increment</small>
+                                {% if form.starting_number.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.starting_number.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.suffix_pattern.label(class="form-label") }}
+                                {{ form.suffix_pattern(class="form-select") }}
+                                {% if form.suffix_pattern.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.suffix_pattern.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle mr-2"></i>Preview</h6>
+                                <p class="mb-2"><strong>Plate Format:</strong> <span id="plate-preview">LT 1000 AA</span></p>
+                                <p class="mb-0"><strong>Total Buses:</strong> <span id="total-preview">0 buses</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <div class="card-footer">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <a href="{{ url_for('admin_bp.buses') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left mr-2"></i>Back to Buses
+                            </a>
+                        </div>
+                        <div class="col-sm-6 text-right">
+                            <button type="submit" class="btn btn-primary btn-loading">
+                                <i class="fas fa-plus mr-2"></i>Create Buses
+                                <span class="spinner-border spinner-border-sm d-none ml-2" role="status"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const regionSelect = document.querySelector('select[name="region_code"]');
+    const startingNumberInput = document.querySelector('input[name="starting_number"]');
+    const quantityInput = document.querySelector('input[name="quantity_per_operator"]');
+    const operatorCheckboxes = document.querySelectorAll('input[name="operator_assignments"]');
+    const platePreview = document.getElementById('plate-preview');
+    const totalPreview = document.getElementById('total-preview');
+
+    function updatePreview() {
+        const region = regionSelect.value || 'LT';
+        const startNum = parseInt(startingNumberInput.value) || 1000;
+        const quantity = parseInt(quantityInput.value) || 1;
+        const selectedOperators = Array.from(operatorCheckboxes).filter(cb => cb.checked).length;
+        
+        platePreview.textContent = `${region} ${startNum.toString().padStart(4, '0')} AA`;
+        totalPreview.textContent = `${selectedOperators * quantity} buses across ${selectedOperators} agencies`;
+    }
+
+    regionSelect.addEventListener('change', updatePreview);
+    startingNumberInput.addEventListener('input', updatePreview);
+    quantityInput.addEventListener('input', updatePreview);
+    operatorCheckboxes.forEach(cb => cb.addEventListener('change', updatePreview));
+
+    // Initial preview
+    updatePreview();
+});
+</script>
+{% endblock %}

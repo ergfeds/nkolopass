@@ -1,0 +1,376 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - Admin Panel - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+            <h1 class="h3 mb-3 mb-md-0">
+                <i class="fas fa-bus"></i> {{ title }}
+            </h1>
+            <a href="{{ url_for('admin_bp.buses') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-info-circle"></i> Bus Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.plate_number.label(class="form-label") }}
+                            {{ form.plate_number(class="form-control text-uppercase", placeholder="e.g., SW-1234-AB") }}
+                            {% if form.plate_number.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.plate_number.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">License plate number</small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.capacity.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.capacity(class="form-control") }}
+                                <span class="input-group-text">seats</span>
+                            </div>
+                            {% if form.capacity.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.capacity.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.operator_id.label(class="form-label") }}
+                            {{ form.operator_id(class="form-select") }}
+                            {% if form.operator_id.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.operator_id.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.bus_type_id.label(class="form-label") }}
+                            {{ form.bus_type_id(class="form-select") }}
+                            {% if form.bus_type_id.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.bus_type_id.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            {{ form.model.label(class="form-label") }}
+                            {{ form.model(class="form-control", placeholder="e.g., Mercedes Sprinter, Toyota Hiace") }}
+                            {% if form.model.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.model.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            {{ form.year.label(class="form-label") }}
+                            {{ form.year(class="form-control", placeholder="2023") }}
+                            {% if form.year.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.year.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.is_active(class="form-check-input") }}
+                            {{ form.is_active.label(class="form-check-label") }}
+                        </div>
+                        <small class="form-text text-muted">Active buses can be assigned to trips</small>
+                    </div>
+                    
+                    <div class="d-flex flex-column flex-md-row justify-content-end gap-2">
+                        <a href="{{ url_for('admin_bp.buses') }}" class="btn btn-secondary order-2 order-md-1">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary order-1 order-md-2" data-loading-text="Saving...">
+                            <i class="fas fa-save"></i> {{ 'Update' if bus else 'Create' }} Bus
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if bus %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-th"></i> Seat Layout
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-muted">Current seat configuration</span>
+                    <a href="{{ url_for('admin_bp.bus_seat_map', id=bus.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-edit"></i> Edit Seat Map
+                    </a>
+                </div>
+                
+                <div class="seat-preview" id="seatPreview">
+                    <!-- Seat layout will be loaded here -->
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-info"></i> Bus Information Guide
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="guide-item mb-3">
+                    <h6 class="text-primary">
+                        <i class="fas fa-id-card"></i> Plate Number
+                    </h6>
+                    <p class="small text-muted">
+                        Enter the official license plate number. This must be unique 
+                        for each bus in the system.
+                    </p>
+                </div>
+                
+                <div class="guide-item mb-3">
+                    <h6 class="text-success">
+                        <i class="fas fa-users"></i> Capacity
+                    </h6>
+                    <p class="small text-muted">
+                        Total number of passenger seats. This determines the maximum 
+                        bookings per trip.
+                    </p>
+                </div>
+                
+                <div class="guide-item mb-3">
+                    <h6 class="text-info">
+                        <i class="fas fa-layer-group"></i> Bus Type
+                    </h6>
+                    <p class="small text-muted">
+                        Choose between VIP (premium) and Regular (standard) service 
+                        types. This affects pricing and amenities.
+                    </p>
+                </div>
+                
+                <div class="guide-item">
+                    <h6 class="text-warning">
+                        <i class="fas fa-toggle-on"></i> Status
+                    </h6>
+                    <p class="small text-muted">
+                        Only active buses can be assigned to trips. Inactive buses 
+                        are hidden from trip scheduling.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        {% if bus %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-bar"></i> Bus Statistics
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="stat-item">
+                            <h4 class="text-primary mb-0">{{ bus.trips|length }}</h4>
+                            <small class="text-muted">Total Trips</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-item">
+                            <h4 class="text-success mb-0">{{ bus.capacity }}</h4>
+                            <small class="text-muted">Seat Capacity</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-3">
+                
+                <div class="bus-details">
+                    <div class="detail-row d-flex justify-content-between mb-2">
+                        <span class="text-muted">Operator:</span>
+                        <span class="fw-bold">{{ bus.operator.name }}</span>
+                    </div>
+                    <div class="detail-row d-flex justify-content-between mb-2">
+                        <span class="text-muted">Type:</span>
+                        <span class="badge bg-{{ 'warning' if bus.bus_type.name == 'VIP' else 'info' }}">
+                            {{ bus.bus_type.name }}
+                        </span>
+                    </div>
+                    <div class="detail-row d-flex justify-content-between mb-2">
+                        <span class="text-muted">Created:</span>
+                        <span>{{ bus.created_at.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.guide-item {
+    padding: var(--space-sm);
+    border-left: 3px solid var(--admin-gray-200);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.guide-item h6 i {
+    margin-right: var(--space-xs);
+}
+
+.stat-item {
+    padding: var(--space-sm) 0;
+}
+
+.detail-row {
+    font-size: 0.875rem;
+}
+
+.seat-preview {
+    background: var(--admin-gray-50);
+    border-radius: var(--radius);
+    padding: var(--space);
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.seat-mini {
+    width: 20px;
+    height: 20px;
+    background: var(--admin-success);
+    border-radius: 3px;
+    margin: 2px;
+    display: inline-block;
+}
+
+.form-control.text-uppercase {
+    text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    .d-flex.justify-content-end {
+        flex-direction: column !important;
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: var(--space-sm);
+    }
+    
+    .stat-item h4 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-uppercase plate number input
+document.getElementById('plate_number').addEventListener('input', function(e) {
+    this.value = this.value.toUpperCase();
+});
+
+// Load seat preview if editing existing bus
+{% if bus %}
+document.addEventListener('DOMContentLoaded', function() {
+    loadSeatPreview();
+});
+
+function loadSeatPreview() {
+    const capacity = {{ bus.capacity }};
+    const seatsPerRow = 4;
+    const rows = Math.ceil(capacity / seatsPerRow);
+    
+    const preview = document.getElementById('seatPreview');
+    preview.innerHTML = '';
+    
+    let seatNumber = 1;
+    for (let row = 0; row < rows; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.style.marginBottom = '5px';
+        
+        const seatsInRow = Math.min(seatsPerRow, capacity - (row * seatsPerRow));
+        for (let seat = 0; seat < seatsInRow; seat++) {
+            const seatDiv = document.createElement('div');
+            seatDiv.className = 'seat-mini';
+            seatDiv.title = `Seat ${seatNumber}`;
+            rowDiv.appendChild(seatDiv);
+            seatNumber++;
+        }
+        
+        preview.appendChild(rowDiv);
+    }
+    
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'text-center mt-2 small text-muted';
+    infoDiv.textContent = `${capacity} seats arranged in ${rows} rows`;
+    preview.appendChild(infoDiv);
+}
+{% endif %}
+
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+</script>
+{% endblock %}

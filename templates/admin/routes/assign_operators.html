@@ -1,0 +1,254 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h4 mb-0">
+                        <i class="fas fa-user-plus me-2"></i>{{ title }}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-route me-1"></i>
+                        <strong>{{ route.name }}</strong>: {{ route.origin }} → {{ route.destination }}
+                    </p>
+                </div>
+                <a href="{{ url_for('admin_bp.route_operators', route_id=route.id) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Assignments
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Assign Operators to Route</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" novalidate>
+                                {{ form.hidden_tag() }}
+                                
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Select Operators</label>
+                                    <div class="row">
+                                        {% for subfield in form.operator_assignments %}
+                                        <div class="col-md-6 col-lg-4 mb-2">
+                                            <div class="form-check">
+                                                {{ subfield(class="form-check-input") }}
+                                                {{ subfield.label(class="form-check-label") }}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if not form.operator_assignments.choices %}
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        All active operators are already assigned to this route.
+                                        <a href="{{ url_for('admin_bp.route_operators', route_id=route.id) }}" class="alert-link">
+                                            View existing assignments
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <hr>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.default_regular_price.label(class="form-label") }}
+                                        <div class="input-group">
+                                            {{ form.default_regular_price(class="form-control" + (" is-invalid" if form.default_regular_price.errors else "")) }}
+                                            <span class="input-group-text">FCFA</span>
+                                        </div>
+                                        {% for error in form.default_regular_price.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                        <small class="form-text text-muted">Price for regular buses</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.default_vip_price.label(class="form-label") }}
+                                        <div class="input-group">
+                                            {{ form.default_vip_price(class="form-control" + (" is-invalid" if form.default_vip_price.errors else "")) }}
+                                            <span class="input-group-text">FCFA</span>
+                                        </div>
+                                        {% for error in form.default_vip_price.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                        <small class="form-text text-muted">Price for VIP buses (optional - uses regular price if not set)</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Service Days</label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                {{ form.monday(class="form-check-input") }}
+                                                {{ form.monday.label(class="form-check-label") }}
+                                            </div>
+                                            <div class="form-check">
+                                                {{ form.tuesday(class="form-check-input") }}
+                                                {{ form.tuesday.label(class="form-check-label") }}
+                                            </div>
+                                            <div class="form-check">
+                                                {{ form.wednesday(class="form-check-input") }}
+                                                {{ form.wednesday.label(class="form-check-label") }}
+                                            </div>
+                                            <div class="form-check">
+                                                {{ form.thursday(class="form-check-input") }}
+                                                {{ form.thursday.label(class="form-check-label") }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                {{ form.friday(class="form-check-input") }}
+                                                {{ form.friday.label(class="form-check-label") }}
+                                            </div>
+                                            <div class="form-check">
+                                                {{ form.saturday(class="form-check-input") }}
+                                                {{ form.saturday.label(class="form-check-label") }}
+                                            </div>
+                                            <div class="form-check">
+                                                {{ form.sunday(class="form-check-input") }}
+                                                {{ form.sunday.label(class="form-check-label") }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">Select the days when these operators will service this route</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.notes.label(class="form-label") }}
+                                    {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows="3") }}
+                                    {% for error in form.notes.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                    <small class="form-text text-muted">Optional notes about this assignment</small>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    {% if form.operator_assignments.choices %}
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>Assign Operators
+                                    </button>
+                                    {% endif %}
+                                    <a href="{{ url_for('admin_bp.route_operators', route_id=route.id) }}" class="btn btn-outline-secondary">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Assignment Info
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-lightbulb me-2"></i>Pricing Guidelines</h6>
+                                <ul class="mb-0 small">
+                                    <li>Regular price applies to standard buses</li>
+                                    <li>VIP price is optional - uses regular price if not set</li>
+                                    <li>Prices can be edited individually after assignment</li>
+                                    <li>Route base price: 
+                                        {% if route.base_price is not none and route.base_price > 0 %}
+                                            <strong>{{ "{:,.0f}".format(route.base_price|float) }} FCFA</strong>
+                                        {% else %}
+                                            <strong class="text-muted">Not set</strong>
+                                        {% endif %}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-calendar me-2"></i>Service Days</h6>
+                                <p class="mb-0 small">
+                                    Service days determine when operators can run trips on this route. 
+                                    Trip generation will only create trips for selected days.
+                                </p>
+                            </div>
+
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-check-circle me-2"></i>After Assignment</h6>
+                                <p class="mb-0 small">
+                                    Once operators are assigned, you can:
+                                </p>
+                                <ul class="mb-0 small">
+                                    <li>Generate trips automatically</li>
+                                    <li>Edit individual pricing</li>
+                                    <li>Modify service schedules</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-calculate VIP price as 1.5x regular price
+    $('#default_regular_price').on('input', function() {
+        const regularPrice = parseFloat($(this).val());
+        const vipField = $('#default_vip_price');
+        
+        if (regularPrice && regularPrice > 0 && !vipField.val()) {
+            const vipPrice = Math.round(regularPrice * 1.5);
+            vipField.val(vipPrice);
+        }
+    });
+
+    // Select/Deselect all operators
+    let selectAllBtn = $('<button type="button" class="btn btn-sm btn-outline-primary mb-2">Select All</button>');
+    let deselectAllBtn = $('<button type="button" class="btn btn-sm btn-outline-secondary mb-2 ms-2">Deselect All</button>');
+    
+    $('.form-label:contains("Select Operators")').after(
+        $('<div class="mb-2"></div>').append(selectAllBtn, deselectAllBtn)
+    );
+
+    selectAllBtn.click(function() {
+        $('input[name="operator_assignments"]').prop('checked', true);
+    });
+
+    deselectAllBtn.click(function() {
+        $('input[name="operator_assignments"]').prop('checked', false);
+    });
+
+    // Select/Deselect all days
+    let selectAllDaysBtn = $('<button type="button" class="btn btn-sm btn-outline-primary mb-2">All Days</button>');
+    let workdaysBtn = $('<button type="button" class="btn btn-sm btn-outline-info mb-2 ms-2">Weekdays</button>');
+    let weekendBtn = $('<button type="button" class="btn btn-sm btn-outline-warning mb-2 ms-2">Weekend</button>');
+    
+    $('.form-label:contains("Service Days")').after(
+        $('<div class="mb-2"></div>').append(selectAllDaysBtn, workdaysBtn, weekendBtn)
+    );
+
+    selectAllDaysBtn.click(function() {
+        $('#monday, #tuesday, #wednesday, #thursday, #friday, #saturday, #sunday').prop('checked', true);
+    });
+
+    workdaysBtn.click(function() {
+        $('#monday, #tuesday, #wednesday, #thursday, #friday').prop('checked', true);
+        $('#saturday, #sunday').prop('checked', false);
+    });
+
+    weekendBtn.click(function() {
+        $('#saturday, #sunday').prop('checked', true);
+        $('#monday, #tuesday, #wednesday, #thursday, #friday').prop('checked', false);
+    });
+});
+</script>
+{% endblock %}

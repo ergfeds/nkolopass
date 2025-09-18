@@ -1,0 +1,261 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Booking Details - {{ booking.booking_reference }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-ticket-alt me-2"></i>Booking Details
+        </h1>
+        <div>
+            <a href="{{ url_for('admin_bp.bookings') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to List
+            </a>
+            <button class="btn btn-primary" onclick="printTicket()">
+                <i class="fas fa-print me-2"></i>Print Ticket
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Booking Information -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Booking Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted">Booking Reference</label>
+                            <h5>{{ booking.booking_reference }}</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted">Booking Date</label>
+                            <h5>{{ booking.created_at.strftime('%d %B %Y, %H:%M') }}</h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted">Status</label>
+                            <div>
+                                {% if booking.status == 'confirmed' %}
+                                    <span class="badge bg-success fs-6">Confirmed</span>
+                                {% elif booking.status == 'pending' %}
+                                    <span class="badge bg-warning fs-6">Pending</span>
+                                {% elif booking.status == 'cancelled' %}
+                                    <span class="badge bg-danger fs-6">Cancelled</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted">Payment Status</label>
+                            <div>
+                                {% if booking.payment_status == 'paid' %}
+                                    <span class="badge bg-success fs-6">Paid</span>
+                                {% elif booking.payment_status == 'pending' %}
+                                    <span class="badge bg-warning fs-6">Pending</span>
+                                {% elif booking.payment_status == 'refunded' %}
+                                    <span class="badge bg-info fs-6">Refunded</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trip Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Trip Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted">Route</label>
+                            <h5>{{ booking.trip.route.origin }} → {{ booking.trip.route.destination }}</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted">Operator</label>
+                            <h5>{{ booking.trip.operator.name }}</h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted">Departure</label>
+                            <h5>{{ booking.trip.departure_time.strftime('%d %B %Y, %H:%M') }}</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted">Arrival</label>
+                            <h5>{{ booking.trip.arrival_time.strftime('%d %B %Y, %H:%M') }}</h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted">Bus Type</label>
+                            <h5>
+                                {{ booking.trip.bus_type.name if booking.trip.bus_type else 'Standard' }}
+                                {% if booking.trip.bus_type and booking.trip.bus_type.category == 'vip' %}
+                                    <span class="badge bg-warning">VIP</span>
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted">Virtual Bus ID</label>
+                            <h5>{{ booking.trip.virtual_bus_id or 'N/A' }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seat Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Seat Information</h5>
+                </div>
+                <div class="card-body">
+                    {% set seats = booking.get_seat_numbers() %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="text-muted">Number of Seats</label>
+                            <h5>{{ seats|length }}</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted">Seat Numbers</label>
+                            <h5>
+                                {% for seat in seats %}
+                                    <span class="badge bg-primary me-1">Seat {{ seat }}</span>
+                                {% endfor %}
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer & Payment Information -->
+        <div class="col-md-4">
+            <!-- Customer Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Customer Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted">Name</label>
+                        <h6>{{ booking.customer.name }}</h6>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Email</label>
+                        <h6>{{ booking.customer.email }}</h6>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Phone</label>
+                        <h6>{{ booking.customer.phone }}</h6>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Payment Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted">Total Amount</label>
+                        <h4 class="text-primary">{{ "{:,.0f}".format(booking.total_amount) }} FCFA</h4>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Payment Method</label>
+                        <h6>Mobile Money</h6>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Payment Date</label>
+                        <h6>{{ booking.updated_at.strftime('%d %B %Y, %H:%M') if booking.payment_status == 'paid' else 'N/A' }}</h6>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if booking.status != 'cancelled' %}
+                    <button class="btn btn-danger w-100 mb-2" 
+                            onclick="cancelBooking({{ booking.id }}, '{{ booking.booking_reference }}')">
+                        <i class="fas fa-times me-2"></i>Cancel Booking
+                    </button>
+                    {% endif %}
+                    
+                    {% if booking.payment_status == 'pending' %}
+                    <button class="btn btn-success w-100 mb-2" 
+                            onclick="confirmPayment({{ booking.id }}, '{{ booking.booking_reference }}')">
+                        <i class="fas fa-check me-2"></i>Confirm Payment
+                    </button>
+                    {% endif %}
+                    
+                    {% if booking.payment_status == 'paid' and booking.status != 'cancelled' %}
+                    <button class="btn btn-info w-100 mb-2" onclick="resendTicket()">
+                        <i class="fas fa-envelope me-2"></i>Resend Ticket
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cancelBooking(bookingId, reference) {
+    if (confirm(`Are you sure you want to cancel booking ${reference}?`)) {
+        fetch(`/admin/bookings/${bookingId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error cancelling booking');
+            }
+        });
+    }
+}
+
+function confirmPayment(bookingId, reference) {
+    if (confirm(`Confirm payment for booking ${reference}?`)) {
+        fetch(`/admin/bookings/${bookingId}/confirm-payment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error confirming payment');
+            }
+        });
+    }
+}
+
+function printTicket() {
+    window.open(`/booking/confirmation/{{ booking.id }}?print=true`, '_blank');
+}
+
+function resendTicket() {
+    alert('Ticket resent to {{ booking.customer.email }}');
+}
+</script>
+{% endblock %}

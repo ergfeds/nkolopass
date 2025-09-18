@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Récupérer mon Billet - Nkolo Pass</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --dark-color: #1f2937;
+            --light-bg: #f3f4f6;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .retrieve-container {
+            max-width: 500px;
+            width: 100%;
+            padding: 20px;
+        }
+        
+        .retrieve-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h2 {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .search-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .search-tab {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .search-tab.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .search-tab:hover:not(.active) {
+            border-color: var(--primary-color);
+            background: #f0f4ff;
+        }
+        
+        .form-control {
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            font-size: 16px;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .ticket-result {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .ticket-result:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .help-text {
+            text-align: center;
+            margin-top: 20px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="retrieve-container">
+        <div class="retrieve-card">
+            <!-- Logo -->
+            <div class="logo">
+                <h2><i class="fas fa-bus"></i> Nkolo Pass</h2>
+                <p class="text-muted">Récupérer mon Billet</p>
+            </div>
+            
+            <!-- Search Tabs -->
+            <div class="search-tabs">
+                <div class="search-tab active" data-method="phone">
+                    <i class="fas fa-phone me-2"></i> Téléphone
+                </div>
+                <div class="search-tab" data-method="email">
+                    <i class="fas fa-envelope me-2"></i> Email
+                </div>
+                <div class="search-tab" data-method="reference">
+                    <i class="fas fa-ticket-alt me-2"></i> Référence
+                </div>
+            </div>
+            
+            <!-- Search Form -->
+            <form id="retrieveForm">
+                <!-- Phone Search -->
+                <div class="search-method" id="phone-search">
+                    <div class="mb-3">
+                        <label class="form-label">Numéro de Téléphone</label>
+                        <input type="tel" class="form-control" id="phoneInput" 
+                               placeholder="+237 6XX XXX XXX">
+                        <small class="text-muted">Entrez le numéro utilisé lors de la réservation</small>
+                    </div>
+                </div>
+                
+                <!-- Email Search -->
+                <div class="search-method" id="email-search" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label">Adresse Email</label>
+                        <input type="email" class="form-control" id="emailInput" 
+                               placeholder="exemple@email.com">
+                        <small class="text-muted">Entrez l'email utilisé lors de la réservation</small>
+                    </div>
+                </div>
+                
+                <!-- Reference Search -->
+                <div class="search-method" id="reference-search" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label">Référence de Réservation</label>
+                        <input type="text" class="form-control" id="referenceInput" 
+                               placeholder="NKP123456" style="text-transform: uppercase;">
+                        <small class="text-muted">Entrez votre référence de 9 caractères</small>
+                    </div>
+                </div>
+                
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search me-2"></i> Rechercher mes Billets
+                </button>
+            </form>
+            
+            <!-- Results Section -->
+            <div id="results" style="display: none; margin-top: 30px;">
+                <h5 class="mb-3">Billets Trouvés</h5>
+                <div id="ticketsList"></div>
+            </div>
+            
+            <!-- No Results -->
+            <div id="noResults" class="no-results" style="display: none;">
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <h5>Aucun billet trouvé</h5>
+                <p>Vérifiez vos informations et réessayez</p>
+            </div>
+            
+            <!-- Help Text -->
+            <div class="help-text">
+                <i class="fas fa-info-circle me-1"></i>
+                Besoin d'aide? Appelez le +237 6XX XXX XXX
+            </div>
+        </div>
+        
+        <!-- Back Link -->
+        <div class="back-link">
+            <a href="/">
+                <i class="fas fa-arrow-left me-2"></i> Retour à l'accueil
+            </a>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Tab switching
+        document.querySelectorAll('.search-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Update active tab
+                document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show corresponding search method
+                const method = this.dataset.method;
+                document.querySelectorAll('.search-method').forEach(m => m.style.display = 'none');
+                document.getElementById(`${method}-search`).style.display = 'block';
+                
+                // Clear results
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('noResults').style.display = 'none';
+            });
+        });
+        
+        // Form submission
+        document.getElementById('retrieveForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Get active search method
+            const activeTab = document.querySelector('.search-tab.active');
+            const method = activeTab.dataset.method;
+            
+            let searchValue = '';
+            if (method === 'phone') {
+                searchValue = document.getElementById('phoneInput').value;
+            } else if (method === 'email') {
+                searchValue = document.getElementById('emailInput').value;
+            } else if (method === 'reference') {
+                searchValue = document.getElementById('referenceInput').value;
+            }
+            
+            if (!searchValue) {
+                alert('Veuillez entrer une valeur de recherche');
+                return;
+            }
+            
+            // Show loading
+            const btn = document.querySelector('.search-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Recherche...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/retrieve-tickets?method=${method}&value=${encodeURIComponent(searchValue)}`);
+                const data = await response.json();
+                
+                if (data.tickets && data.tickets.length > 0) {
+                    displayTickets(data.tickets);
+                } else {
+                    showNoResults();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNoResults();
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+        
+        function displayTickets(tickets) {
+            const ticketsList = document.getElementById('ticketsList');
+            ticketsList.innerHTML = '';
+            
+            tickets.forEach(ticket => {
+                const ticketHtml = `
+                    <div class="ticket-result">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">
+                                    <i class="fas fa-route me-2"></i>
+                                    ${ticket.route}
+                                </h6>
+                                <p class="mb-1">
+                                    <i class="fas fa-calendar me-1"></i> ${ticket.date}
+                                    <span class="ms-2">
+                                        <i class="fas fa-clock me-1"></i> ${ticket.time}
+                                    </span>
+                                </p>
+                                <p class="mb-1">
+                                    <i class="fas fa-ticket-alt me-1"></i> 
+                                    Référence: <strong>${ticket.reference}</strong>
+                                </p>
+                                <p class="mb-0">
+                                    <i class="fas fa-chair me-1"></i> 
+                                    Sièges: ${ticket.seats.join(', ')}
+                                </p>
+                            </div>
+                            <div>
+                                <a href="/booking/confirmation/${ticket.id}" 
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye"></i> Voir
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                ticketsList.innerHTML += ticketHtml;
+            });
+            
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('noResults').style.display = 'none';
+        }
+        
+        function showNoResults() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('noResults').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

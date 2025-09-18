@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="page.passenger_details_title">Détails des Passagers - Nkolo Pass</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --dark-color: #1f2937;
+            --light-bg: #f3f4f6;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+        }
+        
+        .lang-switcher {
+            display: flex;
+            gap: 5px;
+            background: white;
+            border-radius: 25px;
+            padding: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .lang-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .lang-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .seat-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 5px;
+        }
+        
+        .price-display {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .continue-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .continue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .passenger-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="/">
+                <i class="fas fa-bus"></i> Nkolo Pass
+            </a>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <div class="lang-switcher">
+                    <button class="lang-btn" data-lang-switch="fr">FR</button>
+                    <button class="lang-btn" data-lang-switch="en">EN</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Progress Bar -->
+    <div class="container mt-4">
+        <div class="progress" style="height: 30px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: 33%">
+                <span class="fw-bold" data-i18n="progress.seats_selected">✓ Sélection des sièges</span>
+            </div>
+            <div class="progress-bar bg-primary" role="progressbar" style="width: 33%">
+                <span class="fw-bold" data-i18n="progress.passenger_details">2. Détails des passagers</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Form Section -->
+            <div class="col-md-8">
+                <form method="POST" id="passengerForm">
+                    <!-- Contact Information -->
+                    <div class="form-card">
+                        <h5 class="mb-4">
+                            <i class="fas fa-user me-2"></i>
+                            <span data-i18n="passenger.contact_info">Informations de Contact</span>
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" data-i18n="passenger.full_name">Nom complet *</label>
+                                <input type="text" class="form-control" name="name" required 
+                                       placeholder="Jean Dupont">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" data-i18n="passenger.email">Email *</label>
+                                <input type="email" class="form-control" name="email" required 
+                                       placeholder="jean@example.com">
+                                <small class="text-muted" data-i18n="passenger.email_note">Le billet sera envoyé à cette adresse</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" data-i18n="passenger.phone">Téléphone *</label>
+                                <input type="tel" class="form-control" name="phone" required 
+                                       placeholder="+237 6XX XXX XXX">
+                                <small class="text-muted" data-i18n="passenger.phone_note">Pour la récupération du billet</small>
+                            </div>
+                            
+                        </div>
+                    </div>
+                    
+                    <!-- Passenger Details -->
+                    <div class="form-card">
+                        <h5 class="mb-4">
+                            <i class="fas fa-users me-2"></i>
+                            <span data-i18n="passenger.passenger_details">Détails des Passagers</span>
+                        </h5>
+                        
+                        <div id="passengersList">
+                            {% for seat in selected_seats %}
+                            <div class="passenger-card">
+                                <h6>Passager - Siège {{ seat }}</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" 
+                                               name="passengers" 
+                                               placeholder="Nom du passager"
+                                               required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" name="passenger_type_{{ seat }}">
+                                            <option value="adult">Adulte</option>
+                                            <option value="child">Enfant (2-12 ans)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select" name="passenger_gender_{{ seat }}">
+                                            <option value="">Genre</option>
+                                            <option value="M">Homme</option>
+                                            <option value="F">Femme</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="sameAsContact">
+                            <label class="form-check-label" for="sameAsContact">
+                                Le premier passager est la personne de contact
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Terms and Conditions -->
+                    <div class="form-card">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                J'accepte les <a href="#" target="_blank">conditions générales</a> et la 
+                                <a href="#" target="_blank">politique de confidentialité</a>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="newsletter">
+                            <label class="form-check-label" for="newsletter">
+                                Je souhaite recevoir des offres et promotions par email
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Summary Section -->
+            <div class="col-md-4">
+                <div class="summary-card">
+                    <h5>Résumé de la Réservation</h5>
+                    
+                    <div class="mt-3">
+                        <p class="mb-2">
+                            <strong>{{ trip.route.origin }} → {{ trip.route.destination }}</strong>
+                        </p>
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-calendar me-1"></i>
+                            {{ trip.departure_time.strftime('%d %B %Y') }}
+                        </p>
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ trip.departure_time.strftime('%H:%M') }} - {{ trip.arrival_time.strftime('%H:%M') }}
+                        </p>
+                        <p class="text-muted">
+                            <i class="fas fa-bus me-1"></i>
+                            {{ trip.operator.name }}
+                        </p>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div>
+                        <p class="mb-2">Sièges sélectionnés:</p>
+                        <div>
+                            {% for seat in selected_seats %}
+                            <span class="seat-badge">Siège {{ seat }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ selected_seats|length }} siège(s) × {{ trip.seat_price }} FCFA</span>
+                        <span>{{ total_amount }} FCFA</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="fw-bold">Total:</span>
+                        <span class="price-display">{{ "{:,.0f}".format(total_amount) }} FCFA</span>
+                    </div>
+                    
+                    <button type="submit" form="passengerForm" class="continue-btn">
+                        Continuer vers le paiement <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                    
+                    <div class="text-center mt-3">
+                        <a href="/booking/seats?trip={{ trip.id }}" class="text-muted">
+                            <i class="fas fa-arrow-left me-1"></i> Modifier la sélection
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+    
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLanguage = localStorage.getItem('nkolo_language') || 'fr';
+            if (typeof langManager !== 'undefined') {
+                langManager.switchLanguage(savedLanguage);
+            }
+        });
+        
+        // Auto-fill first passenger with contact info
+        document.getElementById('sameAsContact').addEventListener('change', function() {
+            if (this.checked) {
+                const name = document.querySelector('input[name="name"]').value;
+                const firstPassenger = document.querySelector('input[name="passengers"]');
+                if (firstPassenger && name) {
+                    firstPassenger.value = name;
+                }
+            }
+        });
+        
+        // Form validation
+        document.getElementById('passengerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get current language from URL
+            const pathParts = window.location.pathname.split('/');
+            const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
+            
+            // Update form action with language prefix
+            this.action = `/${currentLang}/booking/passenger-details`;
+            
+            // Validate all fields
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                this.classList.add('was-validated');
+                return;
+            }
+            
+            // Check terms
+            if (!document.getElementById('terms').checked) {
+                alert('Veuillez accepter les conditions générales');
+                return;
+            }
+            
+            // Submit form
+            this.submit();
+        });
+    </script>
+</body>
+</html>

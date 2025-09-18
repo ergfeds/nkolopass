@@ -1,0 +1,260 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard - Admin Panel - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h3 mb-4">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Modern Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card stats-card primary h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="small text-uppercase text-muted fw-bold mb-1">
+                            Active Operators
+                        </div>
+                        <div class="h4 mb-0 fw-bold">{{ total_operators }}</div>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-lg-3">
+        <div class="card stats-card success h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="small text-uppercase text-muted fw-bold mb-1">
+                            Active Routes
+                        </div>
+                        <div class="h4 mb-0 fw-bold">{{ total_routes }}</div>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-route"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-lg-3">
+        <div class="card stats-card info h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="small text-uppercase text-muted fw-bold mb-1">
+                            Routes
+                        </div>
+                        <div class="h4 mb-0 fw-bold">{{ total_routes }}</div>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-route"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-lg-3">
+        <div class="card stats-card warning h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="small text-uppercase text-muted fw-bold mb-1">
+                            Total Trips
+                        </div>
+                        <div class="h4 mb-0 fw-bold">{{ total_trips }}</div>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Today's Trips -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-clock"></i> Recent Trips
+                </h6>
+                <a href="{{ url_for('admin_bp.trips') }}" class="btn btn-sm btn-primary">
+                    View All Trips
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_trips %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Route</th>
+                                    <th>Operator</th>
+                                    <th>Bus</th>
+                                    <th>Departure</th>
+                                    <th>Available Seats</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trip in recent_trips %}
+                                <tr>
+                                    <td>{{ trip.route.origin }} → {{ trip.route.destination }}</td>
+                                    <td>{{ trip.operator.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'info' if trip.bus_type.name == 'VIP' else 'secondary' }}">
+                                            {{ trip.virtual_bus_id or (trip.bus_type.name + '-1') }}
+                                        </span>
+                                    </td>
+                                    <td>{{ trip.departure_time.strftime('%H:%M') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if trip.available_seats > 10 else 'warning' if trip.available_seats > 0 else 'danger' }}">
+                                            {{ trip.available_seats }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if trip.status == 'scheduled' else 'success' if trip.status == 'departed' else 'info' }}">
+                                            {{ trip.status.title() }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-gray-300 mb-3"></i>
+                        <p class="text-muted">No trips scheduled for today</p>
+                        <a href="{{ url_for('admin_bp.generate_trips') }}" class="btn btn-primary">
+                            Generate Trips
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Bookings -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-ticket-alt"></i> Recent Bookings
+                </h6>
+                <a href="{{ url_for('admin_bp.bookings') }}" class="btn btn-sm btn-primary">
+                    View All
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_bookings %}
+                    {% for booking in recent_bookings %}
+                    <div class="d-flex align-items-center border-bottom py-2">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-{{ 'success' if booking.status == 'confirmed' else 'warning' if booking.status == 'pending' else 'info' }}">
+                                {{ booking.status.title() }}
+                            </span>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small fw-bold">{{ booking.booking_reference }}</div>
+                            <div class="small text-muted">
+                                {{ booking.customer.get_full_name() }}<br>
+                                {{ booking.created_at.strftime('%d/%m %H:%M') }}
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <span class="fw-bold">{{ "{:,.0f}".format(booking.total_amount) }} XAF</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-2x text-gray-300 mb-2"></i>
+                        <p class="text-muted small">No recent bookings</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mt-2">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-bolt"></i> Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <a href="{{ url_for('admin_bp.add_operator') }}" class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center gap-2">
+                            <i class="fas fa-plus fa-lg"></i>
+                            <span class="small fw-bold">Add Operator</span>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ url_for('admin_bp.add_bus_type') }}" class="btn btn-outline-success w-100 py-3 d-flex flex-column align-items-center gap-2">
+                            <i class="fas fa-tags fa-lg"></i>
+                            <span class="small fw-bold">Add Bus Type</span>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ url_for('admin_bp.add_route') }}" class="btn btn-outline-info w-100 py-3 d-flex flex-column align-items-center gap-2">
+                            <i class="fas fa-route fa-lg"></i>
+                            <span class="small fw-bold">Add Route</span>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{{ url_for('admin_bp.generate_trips') }}" class="btn btn-outline-warning w-100 py-3 d-flex flex-column align-items-center gap-2">
+                            <i class="fas fa-calendar-plus fa-lg"></i>
+                            <span class="small fw-bold">Generate Trips</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+.text-gray-300 {
+    color: #dddfeb !important;
+}
+</style>
+{% endblock %}

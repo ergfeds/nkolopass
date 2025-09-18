@@ -1,0 +1,181 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - {{ operator.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>{{ title }}
+                    </h4>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-building me-1"></i>{{ operator.name }} ({{ operator.code }})
+                    </p>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.city.label(class="form-label") }}
+                                {{ form.city(class="form-control" + (" is-invalid" if form.city.errors else "")) }}
+                                {% for error in form.city.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                                <small class="form-text text-muted">City where this office is located</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.contact_phone.label(class="form-label") }}
+                                {{ form.contact_phone(class="form-control" + (" is-invalid" if form.contact_phone.errors else "")) }}
+                                {% for error in form.contact_phone.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.address.label(class="form-label") }}
+                            {{ form.address(class="form-control" + (" is-invalid" if form.address.errors else "")) }}
+                            {% for error in form.address.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">Complete address including street, neighborhood, postal code</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.contact_person.label(class="form-label") }}
+                                {{ form.contact_person(class="form-control" + (" is-invalid" if form.contact_person.errors else "")) }}
+                                {% for error in form.contact_person.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.landmark.label(class="form-label") }}
+                                {{ form.landmark(class="form-control" + (" is-invalid" if form.landmark.errors else "")) }}
+                                {% for error in form.landmark.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.gps_coordinates.label(class="form-label") }}
+                            {{ form.gps_coordinates(class="form-control" + (" is-invalid" if form.gps_coordinates.errors else "")) }}
+                            {% for error in form.gps_coordinates.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">Optional: Latitude, Longitude for GPS navigation</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    {{ form.is_main_office(class="form-check-input") }}
+                                    {{ form.is_main_office.label(class="form-check-label") }}
+                                    <small class="form-text text-muted d-block">Mark as the main headquarters office</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    {{ form.is_active(class="form-check-input") }}
+                                    {{ form.is_active.label(class="form-check-label") }}
+                                    <small class="form-text text-muted d-block">Enable for route assignments</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if location is defined %}
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Location Information</h6>
+                            <ul class="mb-0 small">
+                                <li>Created: {{ location.created_at.strftime('%B %d, %Y at %I:%M %p') }}</li>
+                                <li>This location can be used as pickup or dropoff point in route assignments</li>
+                                {% if location.is_main_office %}
+                                    <li class="text-warning"><strong>This is the main office for {{ operator.name }}</strong></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Adding New Location</h6>
+                            <ul class="mb-0 small">
+                                <li>Each operator can have only one location per city</li>
+                                <li>Locations help passengers know exactly where to board and alight</li>
+                                <li>You can designate one location as the main office</li>
+                                <li>Only active locations will be available for route assignments</li>
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>{{ "Update Location" if location is defined else "Add Location" }}
+                            </button>
+                            <a href="{{ url_for('admin_bp.operator_locations', operator_id=operator.id) }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-format GPS coordinates
+    $('#gps_coordinates').on('blur', function() {
+        const value = $(this).val().trim();
+        if (value) {
+            // Simple validation for latitude,longitude format
+            const coords = value.split(',');
+            if (coords.length === 2) {
+                const lat = parseFloat(coords[0].trim());
+                const lng = parseFloat(coords[1].trim());
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    $(this).val(lat.toFixed(6) + ', ' + lng.toFixed(6));
+                    $(this).removeClass('is-invalid');
+                } else {
+                    $(this).addClass('is-invalid');
+                    if (!$(this).siblings('.invalid-feedback').length) {
+                        $(this).after('<div class="invalid-feedback">Please enter valid coordinates (e.g., 4.0511, 9.7679)</div>');
+                    }
+                }
+            }
+        }
+    });
+
+    // Main office warning
+    $('#is_main_office').on('change', function() {
+        if ($(this).is(':checked')) {
+            if (!$('#mainOfficeWarning').length) {
+                $(this).closest('.form-check').after(`
+                    <div id="mainOfficeWarning" class="alert alert-warning alert-sm mt-2">
+                        <small><i class="fas fa-exclamation-triangle me-1"></i>
+                        This will unmark any other location as main office.</small>
+                    </div>
+                `);
+            }
+        } else {
+            $('#mainOfficeWarning').remove();
+        }
+    });
+
+    // Trigger initial check if editing and is main office
+    if ($('#is_main_office').is(':checked')) {
+        $('#is_main_office').trigger('change');
+    }
+});
+</script>
+{% endblock %}

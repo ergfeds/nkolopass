@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Bulk Create Result - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h3 mb-4"><i class="fas fa-check-circle"></i> Bulk Creation Summary</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Operator</th>
+                        <th>Created</th>
+                        <th>Skipped</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary %}
+                    <tr>
+                        <td>{{ row.operator }}</td>
+                        <td><span class="badge bg-success">{{ row.created }}</span></td>
+                        <td><span class="badge bg-warning">{{ row.skipped }}</span></td>
+                        <td>{{ row.note }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3 text-end">
+            <a href="{{ url_for('admin_bp.buses') }}" class="btn btn-primary">Go to Buses</a>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
+
+

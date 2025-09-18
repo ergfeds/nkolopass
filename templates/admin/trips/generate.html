@@ -1,0 +1,563 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-magic me-2"></i>{{ title }}
+                </h2>
+                <a href="{{ url_for('admin_bp.trips') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Trips
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Trip Generation Parameters</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" novalidate>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Route *</label>
+                                        <select name="route_id" class="form-select" required>
+                                            <option value="">Select a route</option>
+                                            {% for route in routes %}
+                                                <option value="{{ route.id }}">{{ route.origin }} → {{ route.destination }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Operator *</label>
+                                        <select name="operator_id" class="form-select" required>
+                                            <option value="">Select an operator</option>
+                                            {% for operator in operators %}
+                                                <option value="{{ operator.id }}">{{ operator.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Start Date *</label>
+                                        <input type="date" name="start_date" class="form-control" required>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">End Date *</label>
+                                        <input type="date" name="end_date" class="form-control" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Number of Trips per Day *</label>
+                                        <input type="number" name="trips_per_day" class="form-control" min="1" max="20" value="3" required>
+                                        <small class="form-text text-muted">How many trips each direction per day</small>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">First Departure Time *</label>
+                                        <input type="time" name="start_time" class="form-control" value="06:00" required>
+                                        <small class="form-text text-muted">Time of first trip</small>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Last Departure Time *</label>
+                                        <input type="time" name="end_time" class="form-control" value="20:00" required>
+                                        <small class="form-text text-muted">Time of last trip</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Regular Bus Price (FCFA) *</label>
+                                        <input type="number" name="regular_seat_price" class="form-control" min="1000" step="100" value="5000" required>
+                                        <small class="form-text text-muted">Price per seat for regular buses</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">VIP Bus Price (FCFA) *</label>
+                                        <input type="number" name="vip_seat_price" class="form-control" min="1000" step="100" value="8000" required>
+                                        <small class="form-text text-muted">Price per seat for VIP buses</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch mt-2">
+                                            <input type="checkbox" name="bidirectional" class="form-check-input" id="bidirectional" checked>
+                                            <label class="form-check-label" for="bidirectional">
+                                                <strong>Bidirectional Trips</strong>
+                                                <small class="d-block text-muted">Generate return trips in opposite direction</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+
+
+                                <!-- Service Days -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Service Days (All days selected by default)</label>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="monday" class="form-check-input" id="monday" checked>
+                                                <label class="form-check-label" for="monday">Monday</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" name="tuesday" class="form-check-input" id="tuesday" checked>
+                                                <label class="form-check-label" for="tuesday">Tuesday</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" name="wednesday" class="form-check-input" id="wednesday" checked>
+                                                <label class="form-check-label" for="wednesday">Wednesday</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" name="thursday" class="form-check-input" id="thursday" checked>
+                                                <label class="form-check-label" for="thursday">Thursday</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="friday" class="form-check-input" id="friday" checked>
+                                                <label class="form-check-label" for="friday">Friday</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" name="saturday" class="form-check-input" id="saturday" checked>
+                                                <label class="form-check-label" for="saturday">Saturday</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" name="sunday" class="form-check-input" id="sunday" checked>
+                                                <label class="form-check-label" for="sunday">Sunday</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-route me-2"></i>Automated Trip Generation</h6>
+                                    <p class="mb-2">System will automatically generate:</p>
+                                    <ul class="mb-0 small">
+                                        <li><strong>Both VIP and Regular:</strong> Creates trips for both bus types</li>
+                                        <li><strong>Separate pricing:</strong> Different prices for VIP vs Regular buses</li>
+                                        <li><strong>Auto-scheduling:</strong> Times distributed evenly in your range</li>
+                                        <li><strong>Bidirectional:</strong> Return trips with same schedule</li>
+                                    </ul>
+                                </div>
+
+                                <div class="d-flex gap-2 mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-magic me-1"></i>Generate Trips Now
+                                    </button>
+                                    <a href="{{ url_for('admin_bp.trips') }}" class="btn btn-outline-secondary">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-lightbulb me-2"></i>Generation Tips
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-clock me-2"></i>Optimal Times</h6>
+                                <p class="mb-0 small">
+                                    Popular departure times:
+                                </p>
+                                <ul class="mb-0 small">
+                                    <li><strong>Morning:</strong> 06:00, 07:30, 09:00</li>
+                                    <li><strong>Afternoon:</strong> 12:00, 14:30, 16:00</li>
+                                    <li><strong>Evening:</strong> 18:00, 19:30, 21:00</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-calendar me-2"></i>Service Days</h6>
+                                <p class="mb-0 small">
+                                    Trips are only generated for days when the operator is assigned to service the route. 
+                                    Check route assignments if no trips are generated.
+                                </p>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-money-bill me-2"></i>Pricing</h6>
+                                <p class="mb-0 small">
+                                    Trip prices are automatically set based on:
+                                </p>
+                                <ul class="mb-0 small">
+                                    <li>Bus type (VIP vs Regular)</li>
+                                    <li>Operator's route assignment pricing</li>
+                                    <li>Falls back to route base price if not set</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-question-circle me-2"></i>Need Help?
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small mb-2"><strong>No routes showing?</strong></p>
+                            <p class="small mb-3">Make sure operators are assigned to routes first.</p>
+                            
+                            <p class="small mb-2"><strong>Operator not assigned?</strong></p>
+                            <p class="small mb-3">Visit route management to assign operators to routes.</p>
+                            
+                            <p class="small mb-2"><strong>No buses available?</strong></p>
+                            <p class="small">Ensure the selected operator has active buses.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Set default dates (today to next week)
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    
+    if (!$('#start_date').val()) {
+        $('#start_date').val(today.toISOString().split('T')[0]);
+    }
+    if (!$('#end_date').val()) {
+        $('#end_date').val(nextWeek.toISOString().split('T')[0]);
+    }
+
+    // Handle schedule type changes
+    $('#schedule_type').on('change', function() {
+        const scheduleType = $(this).val();
+        $('.schedule-section').hide();
+        
+        switch(scheduleType) {
+            case 'manual':
+                $('#manualTimesSection').show();
+                break;
+            case 'interval':
+                $('#intervalSection').show();
+                break;
+        }
+        
+        // Always show round trip section
+        $('#roundTripSection').show();
+    });
+
+    // Auto-calculate VIP price
+    $('#regular_price').on('input', function() {
+        const regularPrice = parseFloat($(this).val());
+        const vipField = $('#vip_price');
+        
+        if (regularPrice && regularPrice > 0 && !vipField.val()) {
+            const vipPrice = Math.round(regularPrice * 1.3);
+            vipField.val(vipPrice);
+        }
+    });
+
+    // Populate operators when route is selected
+    $('#route_id').on('change', function() {
+        const routeId = $(this).val();
+        const operatorSelect = $('#operator_id');
+        
+        // Clear current options
+        operatorSelect.empty().append('<option value="">Select an operator...</option>');
+        
+        if (routeId) {
+            fetch(`/admin/api/routes/${routeId}/operators`)
+                .then(response => response.json())
+                .then(operators => {
+                    if (operators.length === 0) {
+                        operatorSelect.append('<option value="" disabled>No operators assigned to this route</option>');
+                    } else {
+                        operators.forEach(operator => {
+                            operatorSelect.append(`<option value="${operator.id}">${operator.name} (${operator.code})</option>`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading operators:', error);
+                    operatorSelect.append('<option value="" disabled>Error loading operators</option>');
+                });
+        }
+    });
+
+    // Load operator's current pricing when operator is selected
+    $('#operator_id').on('change', function() {
+        const routeId = $('#route_id').val();
+        const operatorId = $(this).val();
+        
+        if (routeId && operatorId) {
+            fetch(`/admin/api/routes/${routeId}/operators`)
+                .then(response => response.json())
+                .then(operators => {
+                    const operator = operators.find(op => op.id == operatorId);
+                    if (operator) {
+                        if (operator.regular_price && operator.regular_price > 0) {
+                            $('#regular_price').val(operator.regular_price);
+                        }
+                        if (operator.vip_price && operator.vip_price > 0) {
+                            $('#vip_price').val(operator.vip_price);
+                        }
+                        if (operator.trips_per_day && operator.trips_per_day > 0) {
+                            $('#trips_per_day').val(operator.trips_per_day);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.log('No existing pricing found for this route-operator combination');
+                });
+        }
+    });
+
+    // Quick time presets for manual times
+    const timePresets = {
+        'Morning Rush': '06:00, 07:30, 09:00',
+        'Business Hours': '08:00, 12:00, 16:00',
+        'Evening Service': '18:00, 19:30, 21:00',
+        'Full Day': '06:00, 09:00, 12:00, 15:00, 18:00, 21:00'
+    };
+
+    let presetButtons = $('<div class="mb-2"></div>');
+    Object.keys(timePresets).forEach(function(preset) {
+        let btn = $('<button type="button" class="btn btn-sm btn-outline-primary me-1 mb-1">' + preset + '</button>');
+        btn.click(function() {
+            if ($('#schedule_type').val() === 'manual') {
+                $('#departure_times').val(timePresets[preset]);
+            }
+        });
+        presetButtons.append(btn);
+    });
+
+    $('#manualTimesSection .form-label').first().after('<div class="mb-2"><label class="form-label small text-muted">Quick Presets:</label></div>');
+    $('#manualTimesSection .form-label').first().next().after(presetButtons);
+
+    // Generate interval times preview
+    $('#first_departure, #last_departure, #interval_minutes').on('input', function() {
+        generateIntervalPreview();
+    });
+
+    // Update schedule summary when form changes
+    $('#departure_times, #first_departure, #last_departure, #interval_minutes, #schedule_type').on('input change', function() {
+        updateScheduleSummary();
+    });
+
+    // Service days quick selection
+    let dayButtons = $('<div class="mb-2"></div>');
+    dayButtons.append(`
+        <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="selectAllDays()">All Days</button>
+        <button type="button" class="btn btn-sm btn-outline-info me-2" onclick="selectWeekdays()">Weekdays</button>
+        <button type="button" class="btn btn-sm btn-outline-warning" onclick="selectWeekends()">Weekends</button>
+    `);
+    $('.form-label:contains("Service Days")').after(dayButtons);
+
+    // Validate time format
+    $('input[type="text"]').filter('[id*="time"], [id*="departure"]').on('blur', function() {
+        validateTimeFormat($(this));
+    });
+
+    // Date validation
+    $('#start_date, #end_date').on('change', function() {
+        const startDate = new Date($('#start_date').val());
+        const endDate = new Date($('#end_date').val());
+        
+        if (startDate && endDate && startDate > endDate) {
+            $('#end_date').addClass('is-invalid');
+            if (!$('#end_date').siblings('.invalid-feedback').length) {
+                $('#end_date').after('<div class="invalid-feedback">End date must be after start date</div>');
+            }
+        } else {
+            $('#end_date').removeClass('is-invalid');
+            $('#end_date').siblings('.invalid-feedback').remove();
+        }
+    });
+
+    // Initialize form
+    $('#schedule_type').trigger('change');
+    
+    // Initialize operator dropdown if route is already selected
+    if ($('#route_id').val()) {
+        $('#route_id').trigger('change');
+    }
+});
+
+function validateTimeFormat(field) {
+    const value = field.val();
+    if (!value) return;
+    
+    if (field.attr('id') === 'departure_times') {
+        const times = value.split(',');
+        let validTimes = [];
+        let hasError = false;
+
+        times.forEach(function(time) {
+            time = time.trim();
+            if (time && /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+                validTimes.push(time);
+            } else if (time) {
+                hasError = true;
+            }
+        });
+
+        if (hasError) {
+            field.addClass('is-invalid');
+            if (!field.siblings('.invalid-feedback').length) {
+                field.after('<div class="invalid-feedback">Please use HH:MM format (e.g., 08:30)</div>');
+            }
+        } else {
+            field.removeClass('is-invalid');
+            field.siblings('.invalid-feedback').remove();
+            field.val(validTimes.join(', '));
+        }
+    } else {
+        if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(value)) {
+            field.addClass('is-invalid');
+            if (!field.siblings('.invalid-feedback').length) {
+                field.after('<div class="invalid-feedback">Please use HH:MM format</div>');
+            }
+        } else {
+            field.removeClass('is-invalid');
+            field.siblings('.invalid-feedback').remove();
+        }
+    }
+}
+
+function generateIntervalPreview() {
+    const firstTime = $('#first_departure').val();
+    const lastTime = $('#last_departure').val();
+    const interval = parseInt($('#interval_minutes').val());
+    
+    if (!firstTime || !lastTime || !interval) return;
+    
+    try {
+        const start = new Date('2000-01-01 ' + firstTime);
+        const end = new Date('2000-01-01 ' + lastTime);
+        const intervalMs = interval * 60000;
+        
+        let times = [];
+        let current = new Date(start);
+        
+        while (current <= end) {
+            times.push(current.toTimeString().slice(0, 5));
+            current = new Date(current.getTime() + intervalMs);
+        }
+        
+        const previewHtml = `
+            <div class="alert alert-info mt-2">
+                <strong>Preview:</strong> ${times.length} trips - ${times.join(', ')}
+            </div>
+        `;
+        
+        $('#intervalSection .alert').remove();
+        $('#intervalSection').append(previewHtml);
+        
+    } catch (error) {
+        console.error('Error generating preview:', error);
+    }
+}
+
+function selectAllDays() {
+    $('#monday, #tuesday, #wednesday, #thursday, #friday, #saturday, #sunday').prop('checked', true);
+}
+
+function selectWeekdays() {
+    $('#monday, #tuesday, #wednesday, #thursday, #friday').prop('checked', true);
+    $('#saturday, #sunday').prop('checked', false);
+}
+
+function selectWeekends() {
+    $('#saturday, #sunday').prop('checked', true);
+    $('#monday, #tuesday, #wednesday, #thursday, #friday').prop('checked', false);
+}
+
+function updateScheduleSummary() {
+    const scheduleType = $('#schedule_type').val();
+    let times = [];
+    
+    try {
+        if (scheduleType === 'manual') {
+            const manualTimes = $('#departure_times').val();
+            if (manualTimes) {
+                times = manualTimes.split(',').map(t => t.trim()).filter(t => t);
+            }
+        } else if (scheduleType === 'interval') {
+            const firstTime = $('#first_departure').val();
+            const lastTime = $('#last_departure').val();
+            const interval = parseInt($('#interval_minutes').val());
+            
+            if (firstTime && lastTime && interval) {
+                const start = new Date('2000-01-01 ' + firstTime);
+                const end = new Date('2000-01-01 ' + lastTime);
+                const intervalMs = interval * 60000;
+                
+                let current = new Date(start);
+                while (current <= end) {
+                    times.push(current.toTimeString().slice(0, 5));
+                    current = new Date(current.getTime() + intervalMs);
+                }
+            }
+        } else if (scheduleType === 'round_trip') {
+            const baseTimes = $('#departure_times').val();
+            if (baseTimes) {
+                times = baseTimes.split(',').map(t => t.trim()).filter(t => t);
+                if ($('#generate_return_trips').is(':checked')) {
+                    times = times.concat(times); // Double for round trips
+                }
+            }
+        }
+        
+        // Update summary
+        $('#tripCount').text(times.length);
+        
+        if (times.length > 0) {
+            $('#firstDeparture').text(times[0]);
+            $('#lastDeparture').text(times[times.length - 1]);
+            
+            if (times.length > 1) {
+                // Calculate average interval
+                const firstTime = new Date('2000-01-01 ' + times[0]);
+                const lastTime = new Date('2000-01-01 ' + times[times.length - 1]);
+                const totalMinutes = (lastTime - firstTime) / (1000 * 60);
+                const avgInterval = Math.round(totalMinutes / (times.length - 1));
+                $('#avgInterval').text(avgInterval + ' minutes');
+            } else {
+                $('#avgInterval').text('Single trip');
+            }
+        } else {
+            $('#firstDeparture').text('-');
+            $('#lastDeparture').text('-');
+            $('#avgInterval').text('-');
+        }
+        
+    } catch (error) {
+        console.error('Error updating schedule summary:', error);
+    }
+}
+</script>
+{% endblock %}

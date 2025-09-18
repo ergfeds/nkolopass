@@ -1,0 +1,297 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ operator.name }} - Bus Types Configuration - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h4 mb-0">
+                        <i class="fas fa-bus me-2"></i>Bus Types Configuration
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-building me-1"></i>
+                        <strong>{{ operator.name }}</strong> ({{ operator.code }})
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin_bp.operators') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Operators
+                    </a>
+                </div>
+            </div>
+
+            <!-- Operator Summary Card -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-layer-group text-primary me-2"></i>
+                                        <div>
+                                            <small class="text-muted">Available Bus Types</small>
+                                            <div class="fw-bold">{{ bus_types|length }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-cog text-success me-2"></i>
+                                        <div>
+                                            <small class="text-muted">Configured Types</small>
+                                            <div class="fw-bold">{{ configs|length }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-route text-warning me-2"></i>
+                                        <div>
+                                            <small class="text-muted">Route Assignments</small>
+                                            <div class="fw-bold">{{ operator.route_assignments|length }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-calendar text-info me-2"></i>
+                                        <div>
+                                            <small class="text-muted">Member Since</small>
+                                            <div class="fw-bold">{{ operator.created_at.strftime('%m/%Y') }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bus Types Configuration -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Bus Types Configuration</h5>
+                    <small class="text-muted">Configure capacity and seat layouts for each bus type</small>
+                </div>
+                <div class="card-body">
+                    {% if bus_types %}
+                        <div class="row g-4">
+                            {% for bus_type in bus_types %}
+                            {% set config = configs|selectattr('bus_type_id', 'equalto', bus_type.id)|first %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 bus-type-config-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h6 class="card-title mb-1">{{ bus_type.name }}</h6>
+                                                {% if bus_type.description %}
+                                                <small class="text-muted">{{ bus_type.description[:50] }}{% if bus_type.description|length > 50 %}...{% endif %}</small>
+                                                {% endif %}
+                                            </div>
+                                            {% if config %}
+                                                <span class="badge bg-success">Configured</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Not Configured</span>
+                                            {% endif %}
+                                        </div>
+
+                                        {% if config %}
+                                        <!-- Existing Configuration -->
+                                        <div class="config-details mb-3">
+                                            <div class="row text-center">
+                                                <div class="col-6">
+                                                    <div class="stat-item">
+                                                        <h6 class="mb-0 text-primary">{{ config.capacity }}</h6>
+                                                        <small class="text-muted">Seats</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="stat-item">
+                                                        <h6 class="mb-0 text-success">{{ config.seats_per_row }}</h6>
+                                                        <small class="text-muted">Per Row</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="btn-group w-100 mb-2" role="group">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                    onclick="editConfiguration({{ bus_type.id }}, '{{ bus_type.name }}', {{ config.capacity }}, {{ config.seats_per_row }})">
+                                                <i class="fas fa-edit"></i> Edit Config
+                                            </button>
+                                            <a href="{{ url_for('admin_bp.operator_bus_type_seat_map', operator_id=operator.id, config_id=config.id) }}" 
+                                               class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-th"></i> Seat Map
+                                            </a>
+                                        </div>
+                                        {% else %}
+                                        <!-- No Configuration -->
+                                        <div class="text-center py-3 mb-3">
+                                            <i class="fas fa-cog fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted small mb-0">Not configured yet</p>
+                                        </div>
+                                        {% endif %}
+
+                                        <button type="button" class="btn btn-primary btn-sm w-100" 
+                                                onclick="{% if config %}editConfiguration{% else %}addConfiguration{% endif %}({{ bus_type.id }}, '{{ bus_type.name }}'{% if config %}, {{ config.capacity }}, {{ config.seats_per_row }}{% endif %})">
+                                            <i class="fas fa-{% if config %}edit{% else %}plus{% endif %}"></i> 
+                                            {% if config %}Update{% else %}Configure{% endif %}
+                                        </button>
+
+                                        {% if bus_type.get_amenities() %}
+                                        <div class="amenities mt-2">
+                                            <small class="text-muted d-block mb-1">Amenities:</small>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for amenity in bus_type.get_amenities()[:3] %}
+                                                    <span class="badge bg-light text-dark">{{ amenity }}</span>
+                                                {% endfor %}
+                                                {% if bus_type.get_amenities()|length > 3 %}
+                                                    <span class="badge bg-light text-dark">+{{ bus_type.get_amenities()|length - 3 }} more</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-layer-group fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Bus Types Available</h5>
+                            <p class="text-muted">Create bus types first before configuring them for operators.</p>
+                            <a href="{{ url_for('admin_bp.add_bus_type') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Create Bus Type
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Modal -->
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configure Bus Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_bp.configure_operator_bus_type', operator_id=operator.id) }}">
+                <div class="modal-body">
+                    <input type="hidden" id="bus_type_id" name="bus_type_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Bus Type</label>
+                        <input type="text" class="form-control" id="bus_type_name" readonly>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="capacity" class="form-label">Total Capacity</label>
+                                <input type="number" class="form-control" id="capacity" name="capacity" 
+                                       min="10" max="80" value="48" required>
+                                <small class="form-text text-muted">Total number of seats</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="seats_per_row" class="form-label">Seats Per Row</label>
+                                <select class="form-select" id="seats_per_row" name="seats_per_row" required>
+                                    <option value="2">2 seats per row</option>
+                                    <option value="3">3 seats per row</option>
+                                    <option value="4" selected>4 seats per row</option>
+                                    <option value="5">5 seats per row</option>
+                                </select>
+                                <small class="form-text text-muted">Seat arrangement per row</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> After saving, you can customize the seat layout using the Seat Map editor.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addConfiguration(busTypeId, busTypeName) {
+    document.getElementById('bus_type_id').value = busTypeId;
+    document.getElementById('bus_type_name').value = busTypeName;
+    document.getElementById('capacity').value = 48;
+    document.getElementById('seats_per_row').value = 4;
+    
+    new bootstrap.Modal(document.getElementById('configModal'), {
+        backdrop: false
+    }).show();
+}
+
+function editConfiguration(busTypeId, busTypeName, capacity, seatsPerRow) {
+    document.getElementById('bus_type_id').value = busTypeId;
+    document.getElementById('bus_type_name').value = busTypeName;
+    document.getElementById('capacity').value = capacity;
+    document.getElementById('seats_per_row').value = seatsPerRow;
+    
+    new bootstrap.Modal(document.getElementById('configModal'), {
+        backdrop: false
+    }).show();
+}
+
+// Auto-calculate rows when capacity or seats per row changes
+document.getElementById('capacity').addEventListener('input', updateRowsPreview);
+document.getElementById('seats_per_row').addEventListener('change', updateRowsPreview);
+
+function updateRowsPreview() {
+    const capacity = parseInt(document.getElementById('capacity').value) || 0;
+    const seatsPerRow = parseInt(document.getElementById('seats_per_row').value) || 4;
+    const rows = Math.ceil(capacity / seatsPerRow);
+    
+    // You could add a preview here if needed
+}
+</script>
+
+<style>
+.bus-type-config-card {
+    transition: all 0.3s ease;
+    border: 1px solid var(--bs-border-color);
+}
+
+.bus-type-config-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-item {
+    padding: 0.5rem 0;
+}
+
+.config-details {
+    background: #f8f9fa;
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+
+.amenities .badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+</style>
+{% endblock %}

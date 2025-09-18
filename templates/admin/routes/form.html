@@ -1,0 +1,285 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-route me-2"></i>{{ title }}
+                </h2>
+                <a href="{{ url_for('admin_bp.routes') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Routes
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Route Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" novalidate>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Route Name</label>
+                                        <input type="text" name="name" class="form-control" value="{{ route.name if route else '' }}" required>
+                                        <small class="form-text text-muted">e.g., "Douala-Yaoundé Express"</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input type="checkbox" name="is_active" class="form-check-input" {{ 'checked' if route and route.is_active else 'checked' }}>
+                                            <label class="form-check-label">Active Route</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Origin</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-map-marker-alt text-primary"></i></span>
+                                            <input type="text" name="origin" class="form-control" value="{{ route.origin if route else '' }}" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Destination</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-map-marker-alt text-success"></i></span>
+                                            <input type="text" name="destination" class="form-control" value="{{ route.destination if route else '' }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Distance (km)</label>
+                                        <div class="input-group">
+                                            <input type="number" name="distance_km" class="form-control" step="0.1" value="{{ route.distance_km if route else '' }}">
+                                            <span class="input-group-text">km</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Estimated Duration</label>
+                                        <div class="input-group">
+                                            <input type="number" name="estimated_duration" class="form-control" value="{{ route.estimated_duration if route else '' }}">
+                                            <span class="input-group-text">min</span>
+                                        </div>
+                                        <small class="form-text text-muted">Total journey time in minutes</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Waypoints</label>
+                                    <textarea name="waypoints" class="form-control" rows="4" placeholder="Enter intermediate stops (optional)">{{ route.waypoints if route else '' }}</textarea>
+                                    <small class="form-text text-muted">
+                                        Enter intermediate stops, one per line (optional)
+                                        <br>e.g., "Edéa", "Mbalmayo", "Ngoumou"
+                                    </small>
+                                </div>
+
+                                <!-- Operator Assignment Section -->
+                                {% if not route %}
+                                <hr class="my-4">
+                                <h6 class="mb-3">
+                                    <i class="fas fa-building me-2"></i>Assign Operators to Route
+                                </h6>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Select operators that will service this route. You can set individual pricing after creating the route.
+                                </div>
+                                
+                                <div class="row" id="operatorSelection">
+                                    <!-- This will be populated by JavaScript -->
+                                </div>
+                                {% endif %}
+
+                                <div class="d-flex gap-2 mt-4">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>{{ "Update Route" if route else "Create Route" }}
+                                    </button>
+                                    <a href="{{ url_for('admin_bp.routes') }}" class="btn btn-outline-secondary">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Route Guidelines
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-lightbulb me-2"></i>Tips</h6>
+                                <ul class="mb-0 small">
+                                    <li>Use clear, recognizable city/town names</li>
+                                    <li>Pricing is set per operator when assigning them to routes</li>
+                                    <li>Duration should include typical stops and traffic</li>
+                                    <li>Waypoints help passengers identify the route</li>
+                                </ul>
+                            </div>
+
+                            {% if route %}
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-users me-2"></i>Operator Assignments</h6>
+                                <p class="mb-2 small">This route has {{ route.operator_assignments|length }} operator assignments.</p>
+                                <a href="{{ url_for('admin_bp.route_operators', route_id=route.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-cog me-1"></i>Manage Assignments
+                                </a>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-check-circle me-2"></i>Next Steps</h6>
+                                <p class="mb-0 small">After creating this route, you can assign operators and set pricing for VIP and regular buses.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-calculate duration based on distance (rough estimate: 60km/h average)
+    $('#distance_km').on('input', function() {
+        const distance = parseFloat($(this).val());
+        if (distance && distance > 0) {
+            const estimatedMinutes = Math.round((distance / 60) * 60); // 60km/h average
+            const durationField = $('#estimated_duration');
+            if (!durationField.val()) {
+                durationField.val(estimatedMinutes);
+            }
+        }
+    });
+
+});
+</script>
+
+<!-- Load operators for new routes -->
+{% if not route %}
+<script>
+$(document).ready(function() {
+    loadOperators();
+});
+</script>
+{% endif %}
+
+<script>
+
+function loadOperators() {
+    console.log('Starting to load operators...');
+    fetch('/admin/api/operators', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+        .then(response => {
+            console.log('Response received:', response.status, response.statusText);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(operators => {
+            console.log('Operators data received:', operators);
+            const container = $('#operatorSelection');
+            container.empty();
+            
+            if (operators.length === 0) {
+                container.append(`
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No operators available. <a href="/admin/operators/add">Create an operator first</a>.
+                        </div>
+                    </div>
+                `);
+                return;
+            }
+
+            operators.forEach(operator => {
+                container.append(`
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card operator-card" data-operator-id="${operator.id}">
+                            <div class="card-body">
+                                <div class="form-check">
+                                    <input class="form-check-input operator-checkbox" type="checkbox" 
+                                           id="operator_${operator.id}" name="selected_operators" value="${operator.id}">
+                                    <label class="form-check-label w-100" for="operator_${operator.id}">
+                                        <div class="d-flex align-items-center">
+                                            ${operator.logo ? 
+                                                `<img src="/static/uploads/logos/${operator.logo}" alt="${operator.name}" 
+                                                      class="rounded me-2" style="width: 32px; height: 32px;">` : 
+                                                `<div class="bg-primary rounded d-flex align-items-center justify-content-center me-2" 
+                                                      style="width: 32px; height: 32px;">
+                                                    <i class="fas fa-building text-white"></i>
+                                                 </div>`
+                                            }
+                                            <div>
+                                                <div class="fw-bold">${operator.name}</div>
+                                                <small class="text-muted">${operator.code}</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            });
+
+            // Add select all/none buttons
+            container.before(`
+                <div class="mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="selectAllOperators()">
+                        <i class="fas fa-check-square me-1"></i>Select All
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectNoOperators()">
+                        <i class="fas fa-square me-1"></i>Select None
+                    </button>
+                </div>
+            `);
+        })
+        .catch(error => {
+            console.error('Error loading operators:', error);
+            console.error('Error details:', error.message);
+            $('#operatorSelection').html(`
+                <div class="col-12">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading operators: ${error.message}. Check browser console for details.
+                    </div>
+                </div>
+            `);
+        });
+}
+
+function selectAllOperators() {
+    $('.operator-checkbox').prop('checked', true);
+}
+
+function selectNoOperators() {
+    $('.operator-checkbox').prop('checked', false);
+}
+</script>
+{% endblock %}

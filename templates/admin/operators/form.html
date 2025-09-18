@@ -1,0 +1,234 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - Admin Panel - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="fas fa-building"></i> {{ title }}
+            </h1>
+            <a href="{{ url_for('admin_bp.operators') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-info-circle"></i> Operator Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin_bp.edit_operator', id=operator.id) if operator else url_for('admin_bp.add_operator') }}" class="needs-validation" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control", required=True) }}
+                            {% if form.name.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.name.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.code.label(class="form-label") }}
+                            {{ form.code(class="form-control", placeholder="e.g., VIP001", required=True) }}
+                            {% if form.code.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.code.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Unique identifier for this operator</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3", placeholder="Brief description of the operator...") }}
+                        {% if form.description.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.description.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.contact_email.label(class="form-label") }}
+                            {{ form.contact_email(class="form-control", placeholder="contact@operator.com") }}
+                            {% if form.contact_email.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.contact_email.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.contact_phone.label(class="form-label") }}
+                            {{ form.contact_phone(class="form-control", placeholder="+237 XXX XXX XXX") }}
+                            {% if form.contact_phone.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.contact_phone.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.address.label(class="form-label") }}
+                        {{ form.address(class="form-control", rows="2", placeholder="Complete address...") }}
+                        {% if form.address.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.address.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.is_active(class="form-check-input") }}
+                            {{ form.is_active.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end">
+                        <a href="{{ url_for('admin_bp.operators') }}" class="btn btn-secondary me-2">Cancel</a>
+                        <button type="button" class="btn btn-warning me-2" onclick="alert('JS Working!'); console.log('Test button clicked');">Test JS</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> {{ 'Update' if operator else 'Create' }} Operator
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-image"></i> Logo URL
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if operator and operator.logo_url %}
+                    <div class="text-center mb-3">
+                        <img src="{{ operator.logo_url }}" 
+                             alt="{{ operator.name }}" 
+                             class="img-fluid rounded"
+                             style="max-height: 200px;"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="text-muted" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i> Logo failed to load
+                        </div>
+                        <p class="mt-2 text-muted">Current Logo</p>
+                    </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label for="logo_url" class="form-label">Logo Image URL</label>
+                    {{ form.logo_url(class="form-control" + (" is-invalid" if form.logo_url.errors else ""), 
+                                     id="logo_url", 
+                                     placeholder="https://example.com/logo.png or /static/images/logo.png",
+                                     onchange="previewLogoUrl(this.value)") }}
+                    {% if form.logo_url.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.logo_url.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">
+                        <i class="fas fa-info-circle"></i> 
+                        Enter a direct URL to your logo image. Can be external (https://...) or internal (/static/...).
+                        <br><strong>Examples:</strong>
+                        <br>• External: https://via.placeholder.com/150x150/007bff/ffffff?text=LOGO
+                        <br>• Internal: /static/images/operators/my-company-logo.png
+                    </div>
+                </div>
+                
+                <div id="logoPreview" class="text-center" style="display: none;">
+                    <img id="previewImg" class="img-fluid rounded border" style="max-height: 200px;">
+                    <p class="mt-2 text-muted">Logo Preview</p>
+                </div>
+            </div>
+        </div>
+        
+        {% if operator %}
+        <div class="card shadow mt-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-bar"></i> Statistics
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-right">
+                            <h4 class="text-primary">{{ operator.buses|length }}</h4>
+                            <small class="text-muted">Buses</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">{{ operator.trips|length }}</h4>
+                        <small class="text-muted">Trips</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewLogoUrl(url) {
+    const previewDiv = document.getElementById('logoPreview');
+    const previewImg = document.getElementById('previewImg');
+    
+    if (url && url.trim()) {
+        previewImg.src = url;
+        previewImg.onerror = function() {
+            previewDiv.innerHTML = '<div class="text-danger"><i class="fas fa-exclamation-triangle"></i> Unable to load image from URL</div>';
+        };
+        previewImg.onload = function() {
+            // Image loaded successfully
+            previewDiv.innerHTML = '<img id="previewImg" class="img-fluid rounded border" style="max-height: 200px;" src="' + url + '"><p class="mt-2 text-muted">Logo Preview</p>';
+        };
+        previewDiv.style.display = 'block';
+    } else {
+        previewDiv.style.display = 'none';
+    }
+}
+
+// Auto-preview on page load if URL exists
+document.addEventListener('DOMContentLoaded', function() {
+    const logoUrlInput = document.getElementById('logo_url');
+    if (logoUrlInput && logoUrlInput.value) {
+        previewLogoUrl(logoUrlInput.value);
+    }
+});
+</script>
+{% endblock %}

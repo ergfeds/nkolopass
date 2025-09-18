@@ -1,0 +1,197 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Routes - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-route me-2"></i>Routes Management
+                </h2>
+                <a href="{{ url_for('admin_bp.add_route') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Route
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="routesTable" class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Route</th>
+                                    <th>Distance</th>
+                                    <th>Duration</th>
+                                    <th>Price Range</th>
+                                    <th>Operators</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for route in routes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ route.name }}</strong>
+                                        {% if route.get_waypoints() %}
+                                        <br><small class="text-muted">
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            {{ route.get_waypoints()|length }} waypoints
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="route-display">
+                                            <span class="fw-bold text-primary">{{ route.origin }}</span>
+                                            <i class="fas fa-arrow-right mx-2 text-muted"></i>
+                                            <span class="fw-bold text-success">{{ route.destination }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if route.distance_km %}
+                                            {{ "%.1f".format(route.distance_km) }} km
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if route.estimated_duration %}
+                                            {{ (route.estimated_duration // 60) }}h {{ (route.estimated_duration % 60) }}m
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set assignments = route.operator_assignments %}
+                                        {% if assignments %}
+                                            {% set min_regular = assignments|map(attribute='regular_seat_price')|select('greaterthan', 0)|list|min %}
+                                            {% set max_vip = assignments|map(attribute='vip_seat_price')|select('greaterthan', 0)|list|max %}
+                                            {% if min_regular and max_vip %}
+                                                <small class="text-muted">{{ "{:,.0f}".format(min_regular) }} - {{ "{:,.0f}".format(max_vip) }} FCFA</small>
+                                            {% elif min_regular %}
+                                                <small class="text-muted">From {{ "{:,.0f}".format(min_regular) }} FCFA</small>
+                                            {% else %}
+                                                <span class="text-muted">Not set</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">No operators</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-info me-2">
+                                                {{ route.active_operator_count }}/{{ route.operator_count }}
+                                            </span>
+                                            <a href="{{ url_for('admin_bp.route_operators', route_id=route.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-users me-1"></i>Manage
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if route.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('admin_bp.edit_route', id=route.id) }}" 
+                                               class="btn btn-sm btn-outline-warning" title="Edit Route">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{{ url_for('admin_bp.route_operators', route_id=route.id) }}" 
+                                               class="btn btn-sm btn-outline-info" title="Manage Operators">
+                                                <i class="fas fa-users"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteRoute({{ route.id }}, '{{ route.name }}')" title="Delete Route">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="fas fa-route fa-2x mb-3 d-block"></i>
+                                        No routes found. <a href="{{ url_for('admin_bp.add_route') }}">Add your first route</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the route "<span id="routeName"></span>"?</p>
+                <p class="text-danger"><small><i class="fas fa-exclamation-triangle me-1"></i>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Route</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Check if table exists and has data before initializing DataTables
+    if ($('#routesTable').length && $('#routesTable tbody tr').length > 0) {
+        // Only initialize if we have actual data rows (not just "no routes found" message)
+        if (!$('#routesTable tbody tr').first().find('td[colspan]').length) {
+            // Check if DataTable is already initialized and destroy it first
+            if ($.fn.DataTable.isDataTable('#routesTable')) {
+                $('#routesTable').DataTable().destroy();
+            }
+            
+            $('#routesTable').DataTable({
+                responsive: true,
+                order: [[0, 'asc']],
+                pageLength: 25,
+                columnDefs: [
+                    { orderable: false, targets: [7] } // Disable sorting on Actions column
+                ],
+                language: {
+                    search: "Search routes:",
+                    lengthMenu: "Show _MENU_ routes per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ routes",
+                    infoEmpty: "No routes available",
+                    zeroRecords: "No matching routes found"
+                }
+            });
+        }
+    }
+});
+
+function deleteRoute(routeId, routeName) {
+    document.getElementById('routeName').textContent = routeName;
+    document.getElementById('deleteForm').action = '/admin/routes/' + routeId + '/delete';
+    new bootstrap.Modal(document.getElementById('deleteModal'), {
+        backdrop: false
+    }).show();
+}
+</script>
+{% endblock %}

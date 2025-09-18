@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sélection des Sièges - Nkolo Pass</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --dark-color: #1f2937;
+            --light-bg: #f3f4f6;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+        }
+        
+        /* Language Switcher */
+        .lang-switcher {
+            display: flex;
+            gap: 5px;
+            background: white;
+            border-radius: 25px;
+            padding: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .lang-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .lang-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        /* Trip Summary */
+        .trip-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        /* Seat Map */
+        .seat-map-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .bus-layout {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            position: relative;
+        }
+        
+        .driver-area {
+            background: #6c757d;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+            margin-bottom: 20px;
+        }
+        
+        .seat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .aisle {
+            width: 60px;
+        }
+        
+        .seat {
+            width: 45px;
+            height: 45px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .seat:hover:not(.booked):not(.selected) {
+            border-color: var(--primary-color);
+            background: #e0e7ff;
+        }
+        
+        .seat.booked {
+            background: #ef4444;
+            color: white;
+            cursor: not-allowed;
+            border-color: #ef4444;
+        }
+        
+        .seat.selected {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .seat.vip {
+            border-color: #f59e0b;
+        }
+        
+        .seat.vip.selected {
+            background: #f59e0b;
+            border-color: #f59e0b;
+        }
+        
+        /* Legend */
+        .seat-legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-seat {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+        }
+        
+        /* Selection Summary */
+        .selection-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .selected-seats-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
+        .selected-seat-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .price-display {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .continue-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .continue-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .continue-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="/">
+                <i class="fas fa-bus"></i> Nkolo Pass
+            </a>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang-switch="fr">FR</button>
+                    <button class="lang-btn" data-lang-switch="en">EN</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Progress Bar -->
+    <div class="container mt-4">
+        <div class="progress" style="height: 30px;">
+            <div class="progress-bar bg-primary" role="progressbar" style="width: 33%">
+                <span class="fw-bold" data-i18n="booking.select_seats">1. Sélection des sièges</span>
+            </div>
+            <div class="progress-bar bg-light text-dark" role="progressbar" style="width: 33%">
+                <span class="fw-bold" data-i18n="booking.passenger_details">2. Détails</span>
+            </div>
+            <div class="progress-bar bg-light text-dark" role="progressbar" style="width: 34%">
+                <span class="fw-bold" data-i18n="booking.payment">3. Paiement</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- Trip Summary -->
+        <div class="trip-summary">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="mb-0">
+                        <i class="fas fa-route me-2"></i>
+                        <span id="routeDisplay">{{ trip.route.origin }} → {{ trip.route.destination }}</span>
+                    </h5>
+                    <p class="mb-0 mt-2">
+                        <span class="me-3">
+                            <i class="fas fa-calendar me-1"></i>
+                            {{ trip.departure_time.strftime('%d %B %Y') }}
+                        </span>
+                        <span class="me-3">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ trip.departure_time.strftime('%H:%M') }} - {{ trip.arrival_time.strftime('%H:%M') }}
+                        </span>
+                        <span>
+                            <i class="fas fa-bus me-1"></i>
+                            {{ trip.operator.name }} - {{ trip.bus_type.name }}
+                        </span>
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="badge bg-primary fs-6">
+                        {{ trip.seat_price }} FCFA / siège
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Seat Map -->
+            <div class="col-md-8">
+                <div class="seat-map-container">
+                    <h4 class="text-center mb-4">
+                        <span data-i18n="booking.select_seats">Sélectionnez vos sièges</span>
+                    </h4>
+                    
+                    <div class="bus-layout">
+                        <div class="driver-area">
+                            <i class="fas fa-steering-wheel"></i> <span data-i18n="seat.driver">Chauffeur</span>
+                        </div>
+                        
+                        <div id="seatMap">
+                            <!-- Seats will be generated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Legend -->
+                    <div class="seat-legend">
+                        <div class="legend-item">
+                            <div class="legend-seat" style="background: white;"></div>
+                            <span data-i18n="seat.available">Disponible</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-seat" style="background: #2563eb;"></div>
+                            <span data-i18n="seat.selected">Sélectionné</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-seat" style="background: #ef4444;"></div>
+                            <span data-i18n="seat.occupied">Occupé</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Selection Summary -->
+            <div class="col-md-4">
+                <div class="selection-summary">
+                    <h5 data-i18n="seat.selection_summary">Résumé de la sélection</h5>
+                    
+                    <div class="mt-3">
+                        <p class="mb-2" data-i18n="seat.selected_seats">Sièges sélectionnés:</p>
+                        <div class="selected-seats-list" id="selectedSeatsList">
+                            <span class="text-muted" data-i18n="seat.no_seats_selected">Aucun siège sélectionné</span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span data-i18n="seat.seat_count">Nombre de sièges:</span>
+                        <span id="seatCount">0</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span data-i18n="seat.price_per_seat">Prix par siège:</span>
+                        <span>{{ trip.seat_price }} FCFA</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="fw-bold" data-i18n="seat.total">Total:</span>
+                        <span class="price-display" id="totalPrice">0 FCFA</span>
+                    </div>
+                    
+                    <button class="continue-btn" id="continueBtn" disabled onclick="proceedToDetails()">
+                        <span data-i18n="seat.continue">Continuer</span> <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+    
+    <!-- Template Variables -->
+    <script type="application/json" id="pageData">
+        {
+            "tripId": {{ trip.id }},
+            "seatPrice": {{ trip.seat_price }},
+            "bookedSeats": {{ booked_seats | tojson | safe }},
+            "seatLayout": {{ config.get_seat_layout() | tojson | safe if config else '[]' | safe }},
+            "capacity": {{ config.capacity if config else trip.available_seats }},
+            "seatsPerRow": {{ config.seats_per_row if config else 4 }}
+        }
+    </script>
+    
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get current language from URL
+            const pathParts = window.location.pathname.split('/');
+            const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
+            
+            if (typeof langManager !== 'undefined') {
+                langManager.switchLanguage(currentLang);
+            }
+        });
+        
+        // Load configuration from template
+        const pageData = JSON.parse(document.getElementById('pageData').textContent);
+        const tripId = pageData.tripId;
+        const seatPrice = pageData.seatPrice;
+        const bookedSeats = pageData.bookedSeats;
+        let seatLayout = pageData.seatLayout;
+        const capacity = pageData.capacity;
+        const seatsPerRow = pageData.seatsPerRow;
+        
+        // Parse seat layout if it's a string
+        if (typeof seatLayout === 'string') {
+            try {
+                seatLayout = JSON.parse(seatLayout);
+            } catch (e) {
+                console.error('Error parsing seat layout:', e);
+                seatLayout = [];
+            }
+        }
+        
+        let selectedSeats = new Set();
+        
+        function generateSeatMap() {
+            const seatMap = document.getElementById('seatMap');
+            
+            if (seatLayout && seatLayout.length > 0) {
+                // Use configured layout
+                seatLayout.forEach((row, rowIndex) => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'seat-row';
+                    
+                    // Left side seats
+                    const leftSeats = row.slice(0, Math.floor(row.length / 2));
+                    const rightSeats = row.slice(Math.floor(row.length / 2));
+                    
+                    leftSeats.forEach(seatNum => {
+                        if (seatNum) {
+                            const seat = createSeat(seatNum);
+                            rowDiv.appendChild(seat);
+                        }
+                    });
+                    
+                    // Aisle
+                    const aisle = document.createElement('div');
+                    aisle.className = 'aisle';
+                    rowDiv.appendChild(aisle);
+                    
+                    // Right side seats
+                    rightSeats.forEach(seatNum => {
+                        if (seatNum) {
+                            const seat = createSeat(seatNum);
+                            rowDiv.appendChild(seat);
+                        }
+                    });
+                    
+                    seatMap.appendChild(rowDiv);
+                });
+            } else {
+                // Generate default layout
+                const rows = Math.ceil(capacity / seatsPerRow);
+                let seatNumber = 1;
+                
+                for (let row = 0; row < rows; row++) {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'seat-row';
+                    
+                    for (let col = 0; col < seatsPerRow; col++) {
+                        if (seatNumber <= capacity) {
+                            // Add aisle in the middle
+                            if (col === Math.floor(seatsPerRow / 2)) {
+                                const aisle = document.createElement('div');
+                                aisle.className = 'aisle';
+                                rowDiv.appendChild(aisle);
+                            }
+                            
+                            const seat = createSeat(seatNumber);
+                            rowDiv.appendChild(seat);
+                            seatNumber++;
+                        }
+                    }
+                    
+                    seatMap.appendChild(rowDiv);
+                }
+            }
+        }
+        
+        function createSeat(seatData) {
+            // Handle both object and number formats
+            let seatNumber;
+            if (typeof seatData === 'object' && seatData !== null) {
+                seatNumber = seatData.number || seatData.seat_number || seatData.id || seatData;
+            } else {
+                seatNumber = seatData;
+            }
+            
+            // Ensure it's a number or string
+            seatNumber = parseInt(seatNumber) || seatNumber;
+            
+            const seat = document.createElement('div');
+            seat.className = 'seat';
+            seat.textContent = seatNumber;
+            seat.dataset.seatNumber = seatNumber;
+            
+            if (bookedSeats.includes(seatNumber.toString())) {
+                seat.classList.add('booked');
+            } else {
+                seat.addEventListener('click', () => toggleSeat(seatNumber));
+            }
+            
+            return seat;
+        }
+        
+        function toggleSeat(seatNumber) {
+            const seatElement = document.querySelector(`[data-seat-number="${seatNumber}"]`);
+            
+            if (selectedSeats.has(seatNumber)) {
+                selectedSeats.delete(seatNumber);
+                seatElement.classList.remove('selected');
+            } else {
+                if (selectedSeats.size < 10) { // Max 10 seats per booking
+                    selectedSeats.add(seatNumber);
+                    seatElement.classList.add('selected');
+                } else {
+                    alert('Maximum 10 sièges par réservation');
+                    return;
+                }
+            }
+            
+            updateSelection();
+        }
+        
+        function updateSelection() {
+            const selectedSeatsList = document.getElementById('selectedSeatsList');
+            const seatCount = document.getElementById('seatCount');
+            const totalPrice = document.getElementById('totalPrice');
+            const continueBtn = document.getElementById('continueBtn');
+            
+            if (selectedSeats.size > 0) {
+                const seatsArray = Array.from(selectedSeats).sort((a, b) => {
+                    // Ensure proper numeric sorting
+                    const numA = parseInt(a) || a;
+                    const numB = parseInt(b) || b;
+                    return numA - numB;
+                });
+                selectedSeatsList.innerHTML = seatsArray.map(seat => 
+                    `<span class="selected-seat-badge">Siège ${seat}</span>`
+                ).join('');
+                
+                seatCount.textContent = selectedSeats.size;
+                const total = selectedSeats.size * seatPrice;
+                totalPrice.textContent = new Intl.NumberFormat('fr-FR').format(total) + ' FCFA';
+                
+                continueBtn.disabled = false;
+            } else {
+                selectedSeatsList.innerHTML = '<span class="text-muted">Aucun siège sélectionné</span>';
+                seatCount.textContent = '0';
+                totalPrice.textContent = '0 FCFA';
+                continueBtn.disabled = true;
+            }
+        }
+        
+        async function proceedToDetails() {
+            if (selectedSeats.size === 0) {
+                alert('Veuillez sélectionner au moins un siège');
+                return;
+            }
+            
+            // Get current language from URL
+            const pathParts = window.location.pathname.split('/');
+            const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
+            
+            try {
+                const response = await fetch('/api/select-seats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept-Language': currentLang
+                    },
+                    body: JSON.stringify({
+                        trip_id: tripId,
+                        seats: Array.from(selectedSeats)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Use language-aware URL
+                    window.location.href = `/${currentLang}/booking/passenger-details`;
+                } else {
+                    alert(data.error || 'Une erreur est survenue');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Une erreur est survenue');
+            }
+        }
+        
+        // Initialize
+        generateSeatMap();
+    </script>
+</body>
+</html>

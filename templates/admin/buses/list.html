@@ -1,0 +1,454 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Buses - Admin Panel - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+            <h1 class="h3 mb-3 mb-md-0">
+                <i class="fas fa-bus"></i> Bus Fleet Management
+            </h1>
+            <a href="{{ url_for('admin_bp.add_bus') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Bus
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Operator</label>
+                        <select class="form-select" id="operatorFilter">
+                            <option value="">All Operators</option>
+                            {% for operator in operators %}
+                                <option value="{{ operator.id }}">{{ operator.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Bus Type</label>
+                        <select class="form-select" id="busTypeFilter">
+                            <option value="">All Types</option>
+                            {% for bus_type in bus_types %}
+                                <option value="{{ bus_type.id }}">{{ bus_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="applyFilters()">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-list"></i> All Buses
+                </h6>
+                <div id="bulkActions" style="display: none;">
+                    <button type="button" class="btn btn-danger" onclick="bulkDelete()">
+                        <i class="fas fa-trash me-1"></i>Delete Selected (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if buses %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="busesTable">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                    </th>
+                                    <th>Plate Number</th>
+                                    <th>Operator</th>
+                                    <th>Type</th>
+                                    <th>Model</th>
+                                    <th>Capacity</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bus in buses %}
+                                <tr data-operator="{{ bus.operator_id }}" data-type="{{ bus.bus_type_id }}" data-status="{{ 'active' if bus.is_active else 'inactive' }}">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input bus-checkbox" value="{{ bus.id }}" 
+                                               data-has-trips="{{ 'true' if bus.trips else 'false' }}">
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bus-plate me-2">
+                                                <span class="badge bg-dark">{{ bus.plate_number }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="operator-info">
+                                            <div class="fw-bold">{{ bus.operator.name }}</div>
+                                            <small class="text-muted">{{ bus.operator.code }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'warning' if bus.bus_type.name == 'VIP' else 'info' }}">
+                                            {{ bus.bus_type.name }}
+                                        </span>
+                                        <small class="d-block text-muted">{{ bus.bus_type.base_price_multiplier }}x pricing</small>
+                                    </td>
+                                    <td>
+                                        {% if bus.bus_model %}
+                                            <div>{{ bus.bus_model.name }}</div>
+                                            {% if bus.bus_model.year %}
+                                                <small class="text-muted">{{ bus.bus_model.year }}</small>
+                                            {% endif %}
+                                        {% elif bus.model %}
+                                            <div>{{ bus.model }}</div>
+                                            {% if bus.year %}
+                                                <small class="text-muted">{{ bus.year }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="capacity-info">
+                                            <span class="h6 mb-0">{{ bus.effective_capacity or '-' }}</span>
+                                            <small class="d-block text-muted">seats</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if bus.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ bus.created_at.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('admin_bp.bus_seat_map', id=bus.id) }}" 
+                                               class="btn btn-sm btn-outline-info" 
+                                               title="Seat Map">
+                                                <i class="fas fa-th"></i>
+                                            </a>
+                                            <a href="{{ url_for('admin_bp.edit_bus', id=bus.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger" 
+                                                    onclick="confirmDelete('{{ bus.plate_number }}', '{{ url_for('admin_bp.delete_bus', id=bus.id) }}')"
+                                                    title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bus fa-4x text-gray-300 mb-4"></i>
+                        <h4 class="text-gray-600">No Buses Found</h4>
+                        <p class="text-gray-500 mb-4">Add buses to your fleet to start managing trips and bookings.</p>
+                        <a href="{{ url_for('admin_bp.add_bus') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add First Bus
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete bus <strong id="deleteBusName"></strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone and will also delete all associated trips.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Modal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Delete Buses</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="bulkDeleteCount">0</strong> selected buses?</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone and will also delete all associated trips.
+                </div>
+                <div id="bulkDeleteWarnings"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmBulkDelete()">
+                    <i class="fas fa-trash me-1"></i>Delete Buses
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bus-plate .badge {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.operator-info,
+.capacity-info {
+    text-align: center;
+}
+
+.capacity-info .h6 {
+    color: var(--admin-primary);
+    font-weight: bold;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        border-radius: var(--radius) !important;
+        margin-bottom: 0.25rem;
+        width: 100%;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Custom badge colors for bus types */
+.badge.bg-warning {
+    background: linear-gradient(135deg, var(--admin-warning) 0%, #d97706 100%) !important;
+}
+
+.badge.bg-info {
+    background: linear-gradient(135deg, var(--admin-info) 0%, #0284c7 100%) !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedBuses = [];
+
+// Handle select all checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.bus-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedBuses();
+        });
+    }
+
+    // Handle individual checkboxes
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('bus-checkbox')) {
+            updateSelectedBuses();
+        }
+    });
+});
+
+function updateSelectedBuses() {
+    const checkboxes = document.querySelectorAll('.bus-checkbox:checked');
+    selectedBuses = Array.from(checkboxes).map(cb => ({
+        id: cb.value,
+        hasTrips: cb.dataset.hasTrips === 'true'
+    }));
+    
+    // Update UI
+    const selectedCount = document.getElementById('selectedCount');
+    const bulkActions = document.getElementById('bulkActions');
+    
+    if (selectedCount) selectedCount.textContent = selectedBuses.length;
+    if (bulkActions) bulkActions.style.display = selectedBuses.length > 0 ? 'block' : 'none';
+    
+    // Update select all checkbox state
+    const allCheckboxes = document.querySelectorAll('.bus-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll && allCheckboxes.length > 0) {
+        if (selectedBuses.length === allCheckboxes.length) {
+            selectAll.checked = true;
+            selectAll.indeterminate = false;
+        } else if (selectedBuses.length > 0) {
+            selectAll.checked = false;
+            selectAll.indeterminate = true;
+        } else {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+    }
+}
+
+function bulkDelete() {
+    if (selectedBuses.length === 0) return;
+    
+    document.getElementById('bulkDeleteCount').textContent = selectedBuses.length;
+    
+    // Check for buses with trips
+    const busesWithTrips = selectedBuses.filter(b => b.hasTrips);
+    const warnings = document.getElementById('bulkDeleteWarnings');
+    warnings.innerHTML = '';
+    
+    if (busesWithTrips.length > 0) {
+        warnings.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-info-circle me-2"></i>
+                ${busesWithTrips.length} bus(es) have associated trips and their trips will also be deleted.
+            </div>
+        `;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('bulkDeleteModal'), {
+        backdrop: false
+    });
+    modal.show();
+}
+
+function confirmBulkDelete() {
+    const busIds = selectedBuses.map(b => b.id);
+    
+    if (busIds.length === 0) {
+        alert('No buses selected for deletion');
+        return;
+    }
+    
+    // Create form and submit
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/buses/bulk-delete';
+    
+    busIds.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'bus_ids';
+        input.value = id;
+        form.appendChild(input);
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function confirmDelete(busName, deleteUrl) {
+    $('#deleteBusName').text(busName);
+    $('#deleteForm').attr('action', deleteUrl);
+    $('#deleteModal').modal({
+        backdrop: false
+    }).modal('show');
+}
+
+function applyFilters() {
+    const operatorFilter = document.getElementById('operatorFilter').value;
+    const busTypeFilter = document.getElementById('busTypeFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    const table = $('#busesTable').DataTable();
+    
+    // Clear previous search
+    table.search('').columns().search('').draw();
+    
+    // Apply filters
+    const rows = document.querySelectorAll('#busesTable tbody tr');
+    
+    rows.forEach(row => {
+        let showRow = true;
+        
+        if (operatorFilter && row.dataset.operator !== operatorFilter) {
+            showRow = false;
+        }
+        
+        if (busTypeFilter && row.dataset.type !== busTypeFilter) {
+            showRow = false;
+        }
+        
+        if (statusFilter && row.dataset.status !== statusFilter) {
+            showRow = false;
+        }
+        
+        if (showRow) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Reset filters
+function resetFilters() {
+    document.getElementById('operatorFilter').value = '';
+    document.getElementById('busTypeFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    
+    const rows = document.querySelectorAll('#busesTable tbody tr');
+    rows.forEach(row => {
+        row.style.display = '';
+    });
+}
+</script>
+{% endblock %}

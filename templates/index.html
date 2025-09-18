@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nkolo Pass - Réservation de Bus en Ligne | Online Bus Booking</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #10b981;
+            --danger-color: #ef4444;
+            --dark-color: #1f2937;
+            --light-bg: #f3f4f6;
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,165.3C384,171,480,149,576,154.7C672,160,768,192,864,197.3C960,203,1056,181,1152,165.3C1248,149,1344,139,1392,133.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+        }
+        
+        .bus-illustration {
+            position: absolute;
+            right: -100px;
+            bottom: 50px;
+            width: 500px;
+            opacity: 0.3;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        /* Search Form */
+        .search-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: -100px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .search-input {
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        /* Quick Date Buttons */
+        .search-card .btn-outline-secondary {
+            border-color: #dee2e6;
+            color: #6c757d;
+            transition: all 0.3s ease;
+        }
+        
+        .search-card .btn-outline-secondary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+        
+        .search-card .btn-outline-secondary.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Language Switcher */
+        .lang-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+            background: white;
+            border-radius: 25px;
+            padding: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .lang-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #6b7280;
+        }
+        
+        .lang-btn.active {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .lang-btn:hover {
+            background: #2563eb;
+            color: white;
+        }
+        
+        /* Feature Cards */
+        .feature-card {
+            text-align: center;
+            padding: 30px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: white !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 15px 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--primary-color) !important;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark-color) !important;
+            margin: 0 10px;
+            transition: color 0.3s;
+        }
+        
+        .nav-link:hover {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-section {
+                min-height: 500px;
+            }
+            
+            .search-card {
+                margin: 20px;
+                padding: 20px;
+            }
+            
+            .bus-illustration {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Language Switcher -->
+    <div class="lang-switcher">
+        <button class="lang-btn active" data-lang-switch="fr">FR</button>
+        <button class="lang-btn" data-lang-switch="en">EN</button>
+    </div>
+    
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-bus"></i> Nkolo Pass
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/" data-i18n="nav.home">Accueil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/search" data-i18n="nav.search">Rechercher des Voyages</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/retrieve-ticket">
+                            <i class="fas fa-ticket-alt"></i> 
+                            <span data-i18n="nav.retrieve">Récupérer Billet</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/bookings" data-i18n="nav.bookings">Mes Réservations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact" data-i18n="nav.contact">Contact</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login" data-i18n="nav.login">Connexion</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container position-relative">
+            <div class="row align-items-center" style="min-height: 500px;">
+                <div class="col-lg-7">
+                    <h1 class="display-4 fw-bold text-white mb-4" data-i18n="hero.title">
+                        La Plateforme #1 de Réservation de Bus au Cameroun
+                    </h1>
+                    <p class="lead text-white mb-5" data-i18n="hero.subtitle">
+                        Réservez vos billets de bus en ligne facilement
+                    </p>
+                </div>
+            </div>
+        </div>
+        <svg class="bus-illustration" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+            <rect x="50" y="100" width="400" height="150" rx="20" fill="white" opacity="0.9"/>
+            <rect x="70" y="120" width="80" height="60" rx="5" fill="#667eea" opacity="0.5"/>
+            <rect x="170" y="120" width="80" height="60" rx="5" fill="#667eea" opacity="0.5"/>
+            <rect x="270" y="120" width="80" height="60" rx="5" fill="#667eea" opacity="0.5"/>
+            <rect x="370" y="120" width="60" height="60" rx="5" fill="#667eea" opacity="0.5"/>
+            <circle cx="120" cy="250" r="25" fill="#333" opacity="0.7"/>
+            <circle cx="380" cy="250" r="25" fill="#333" opacity="0.7"/>
+        </svg>
+    </section>
+    
+    <!-- Search Form -->
+    <div class="container">
+        <div class="search-card">
+            <form id="searchForm" method="GET">
+                <div class="row g-3">
+                    <!-- From City -->
+                    <div class="col-md-3">
+                        <label class="form-label" data-i18n="search.from">De</label>
+                        <select class="form-select search-input" name="from" id="fromCity" required>
+                            <option value="" data-i18n="search.from_placeholder">Ville de départ</option>
+                        </select>
+                    </div>
+                    
+                    <!-- To City -->
+                    <div class="col-md-3">
+                        <label class="form-label" data-i18n="search.to">À</label>
+                        <select class="form-select search-input" name="to" id="toCity" required>
+                            <option value="" data-i18n="search.to_placeholder">Ville d'arrivée</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Operator -->
+                    <div class="col-md-2">
+                        <label class="form-label" data-i18n="search.operator">Opérateur</label>
+                        <select class="form-select search-input" name="operator" id="operator" required>
+                            <option value="" data-i18n="search.select_route_first">Sélectionnez d'abord un itinéraire</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Date -->
+                    <div class="col-md-2">
+                        <label class="form-label" data-i18n="search.date">Date</label>
+                        <input type="date" class="form-control search-input" name="date" id="travelDate" required>
+                    </div>
+                    
+                    <!-- Search Button -->
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100 search-input" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                            <i class="fas fa-search me-2"></i>
+                            <span data-i18n="search.search_buses">Rechercher</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quick Date Selection -->
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="setToday()">
+                        <span data-i18n="search.today">Aujourd'hui</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setTomorrow()">
+                        <span data-i18n="search.tomorrow">Demain</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Upcoming Trips Section -->
+    <section class="py-5 mt-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5" data-i18n="trips.upcoming">Prochains Départs</h2>
+            <div id="upcomingTrips" class="row g-4">
+                <!-- Trips will be loaded here -->
+            </div>
+            <div class="text-center mt-4">
+                <a href="/search" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i> <span data-i18n="trips.view_all">Voir tous les voyages</span>
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Features Section -->
+    <section class="py-5 mt-5">
+        <div class="container">
+            <h2 class="text-center mb-5" data-i18n="features.title">Pourquoi Nous Choisir?</h2>
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h5 data-i18n="features.secure">Réservation Sécurisée</h5>
+                        <p class="text-muted" data-i18n="features.secure_desc">Paiement en ligne sûr et sécurisé</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bus"></i>
+                        </div>
+                        <h5 data-i18n="features.operators">Plusieurs Opérateurs</h5>
+                        <p class="text-muted" data-i18n="features.operators_desc">Choisissez parmi différents opérateurs</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <h5 data-i18n="features.support">Support 24/7</h5>
+                        <p class="text-muted" data-i18n="features.support_desc">Service client disponible 24h/24</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-undo"></i>
+                        </div>
+                        <h5 data-i18n="features.easy">Remboursements Faciles</h5>
+                        <p class="text-muted" data-i18n="features.easy_desc">Remboursements rapides et sans tracas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Language Selection Modal -->
+    <div class="modal fade" id="languageModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 text-center">
+                    <div class="w-100">
+                        <h4 class="modal-title text-center">
+                            <i class="fas fa-globe me-2"></i>
+                            Choose Your Language / Choisissez Votre Langue
+                        </h4>
+                    </div>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <p class="mb-4">Please select your preferred language for the best experience.<br>
+                    <small class="text-muted">Veuillez sélectionner votre langue préférée pour une meilleure expérience.</small></p>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <button class="btn btn-outline-primary w-100 language-choice" data-lang="en" style="height: 80px;">
+                                <div class="d-flex flex-column align-items-center">
+                                    <span class="fs-1 mb-2">🇬🇧</span>
+                                    <strong>English</strong>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-primary w-100 language-choice" data-lang="fr" style="height: 80px;">
+                                <div class="d-flex flex-column align-items-center">
+                                    <span class="fs-1 mb-2">🇫🇷</span>
+                                    <strong>Français</strong>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-5 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>Nkolo Pass</h5>
+                    <p class="text-muted" data-i18n="footer.tagline">Votre partenaire de voyage de confiance</p>
+                </div>
+                <div class="col-md-4">
+                    <h5 data-i18n="footer.about">À Propos</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-muted" data-i18n="footer.about">À Propos</a></li>
+                        <li><a href="#" class="text-muted" data-i18n="footer.terms">Conditions Générales</a></li>
+                        <li><a href="#" class="text-muted" data-i18n="footer.privacy">Politique de Confidentialité</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 data-i18n="footer.contact">Nous Contacter</h5>
+                    <p class="text-muted">
+                        <i class="fas fa-envelope me-2"></i> contact@nkolopass.cm<br>
+                        <i class="fas fa-phone me-2"></i> +237 6XX XXX XXX
+                    </p>
+                </div>
+            </div>
+            <hr class="my-4 bg-secondary">
+            <div class="text-center">
+                <p class="mb-0">© 2025 Nkolo Pass. <span data-i18n="footer.rights">Tous droits réservés</span></p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+    
+    <script>
+        // Set today's date as default
+        document.getElementById('travelDate').valueAsDate = new Date();
+        
+        // Quick date functions
+        function setToday() {
+            document.getElementById('travelDate').valueAsDate = new Date();
+            
+            // Update button states
+            document.querySelectorAll('.btn-outline-secondary').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('[onclick="setToday()"]').classList.add('active');
+        }
+        
+        function setTomorrow() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('travelDate').valueAsDate = tomorrow;
+            
+            // Update button states
+            document.querySelectorAll('.btn-outline-secondary').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('[onclick="setTomorrow()"]').classList.add('active');
+        }
+        
+        // Language Selection Modal Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get current language from URL
+            const currentPath = window.location.pathname;
+            const pathParts = currentPath.split('/');
+            const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
+            
+            // Check if this is first visit (no language in URL)
+            if (!pathParts[1] || (pathParts[1] !== 'en' && pathParts[1] !== 'fr')) {
+                // Show language selection modal
+                const languageModal = new bootstrap.Modal(document.getElementById('languageModal'));
+                languageModal.show();
+            } else {
+                // Apply current language from URL
+                if (typeof langManager !== 'undefined') {
+                    langManager.switchLanguage(currentLang);
+                }
+            }
+            
+            // Handle language selection
+            document.querySelectorAll('.language-choice').forEach(button => {
+                button.addEventListener('click', function() {
+                    const selectedLang = this.dataset.lang;
+                    
+                    // Redirect to language-specific URL
+                    const newPath = `/${selectedLang}/`;
+                    window.location.href = newPath;
+                });
+            });
+            
+            // Date input handling
+            const dateInput = document.getElementById('travelDate');
+            dateInput.addEventListener('change', function() {
+                const selectedDate = new Date(this.value);
+                const today = new Date();
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                // Remove active state from all buttons
+                document.querySelectorAll('.btn-outline-secondary').forEach(btn => btn.classList.remove('active'));
+                
+                // Check if selected date matches today or tomorrow
+                if (selectedDate.toDateString() === today.toDateString()) {
+                    document.querySelector('[onclick="setToday()"]').classList.add('active');
+                } else if (selectedDate.toDateString() === tomorrow.toDateString()) {
+                    document.querySelector('[onclick="setTomorrow()"]').classList.add('active');
+                }
+            });
+            
+            // Set today as active by default
+            setToday();
+            
+            // Handle form submission with language prefix
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get current language from URL
+                const pathParts = window.location.pathname.split('/');
+                const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
+                
+                // Build search URL with language prefix
+                const formData = new FormData(this);
+                const params = new URLSearchParams(formData);
+                const searchUrl = `/${currentLang}/search?${params.toString()}`;
+                
+                // Navigate to search results
+                window.location.href = searchUrl;
+            });
+        });
+        
+        // Store all cities globally
+        let allCities = [];
+        
+        // Load cities and routes
+        async function loadRoutesAndCities() {
+            try {
+                const response = await fetch('/api/routes');
+                const routes = await response.json();
+                
+                // Extract unique cities
+                const cities = new Set();
+                routes.forEach(route => {
+                    cities.add(route.origin);
+                    cities.add(route.destination);
+                });
+                
+                // Sort cities alphabetically and store globally
+                allCities = Array.from(cities).sort();
+                
+                // Initial population of dropdowns
+                updateCityDropdowns();
+                
+            } catch (error) {
+                console.error('Error loading routes:', error);
+            }
+        }
+        
+        // Update city dropdowns based on current selections
+        function updateCityDropdowns() {
+            const fromSelect = document.getElementById('fromCity');
+            const toSelect = document.getElementById('toCity');
+            const currentFrom = fromSelect.value;
+            const currentTo = toSelect.value;
+            
+            // Update FROM dropdown (exclude currently selected TO city)
+            fromSelect.innerHTML = `<option value="">${langManager.translate('search.from_placeholder')}</option>`;
+            allCities.forEach(city => {
+                if (city !== currentTo) {
+                    const selected = city === currentFrom ? 'selected' : '';
+                    fromSelect.innerHTML += `<option value="${city}" ${selected}>${city}</option>`;
+                }
+            });
+            
+            // Update TO dropdown (exclude currently selected FROM city)
+            toSelect.innerHTML = `<option value="">${langManager.translate('search.to_placeholder')}</option>`;
+            allCities.forEach(city => {
+                if (city !== currentFrom) {
+                    const selected = city === currentTo ? 'selected' : '';
+                    toSelect.innerHTML += `<option value="${city}" ${selected}>${city}</option>`;
+                }
+            });
+        }
+        
+        // Load operators based on selected route
+        async function loadOperators() {
+            const from = document.getElementById('fromCity').value;
+            const to = document.getElementById('toCity').value;
+            const operatorSelect = document.getElementById('operator');
+            
+            if (!from || !to) {
+                operatorSelect.innerHTML = `<option value="">${langManager.translate('search.select_route_first')}</option>`;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/route-operators?from=${from}&to=${to}`);
+                const operators = await response.json();
+                
+                operatorSelect.innerHTML = `<option value="">${langManager.translate('search.select_operator')}</option>`;
+                operators.forEach(op => {
+                    operatorSelect.innerHTML += `<option value="${op.id}">${op.name}</option>`;
+                });
+                
+                if (operators.length === 0) {
+                    operatorSelect.innerHTML = `<option value="">No operators for this route</option>`;
+                }
+            } catch (error) {
+                console.error('Error loading operators:', error);
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('fromCity').addEventListener('change', function() {
+            updateCityDropdowns();
+            loadOperators();
+        });
+        document.getElementById('toCity').addEventListener('change', function() {
+            updateCityDropdowns();
+            loadOperators();
+        });
+        
+        // Initialize language manager fallback
+        if (typeof langManager === 'undefined') {
+            window.langManager = {
+                translate: function(key) {
+                    const translations = {
+                        'search.select_route_first': 'Sélectionnez d\'abord un itinéraire',
+                        'search.select_operator': 'Choisir un opérateur',
+                        'search.from_placeholder': 'Ville de départ',
+                        'search.to_placeholder': 'Ville d\'arrivée'
+                    };
+                    return translations[key] || key;
+                }
+            };
+        }
+        
+        // Load upcoming trips
+        async function loadUpcomingTrips() {
+            try {
+                const response = await fetch('/api/upcoming-trips');
+                const trips = await response.json();
+                
+                const container = document.getElementById('upcomingTrips');
+                
+                if (trips.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-center"><p class="text-muted">Aucun voyage disponible pour le moment</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = trips.slice(0, 6).map(trip => `
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">${trip.route}</h6>
+                                    <span class="badge bg-${trip.bus_type === 'vip' ? 'warning' : 'info'}">
+                                        ${trip.bus_type === 'vip' ? '⭐ VIP' : 'Regular'}
+                                    </span>
+                                </div>
+                                <p class="text-muted small mb-2">
+                                    <i class="fas fa-bus me-1"></i> ${trip.operator}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <i class="fas fa-clock me-1"></i>
+                                        <strong>${trip.departure_time}</strong>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-calendar me-1"></i>
+                                        ${trip.date}
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-primary fw-bold">${trip.price} FCFA</span>
+                                    <span class="small text-muted">
+                                        <i class="fas fa-chair me-1"></i>
+                                        ${trip.available_seats} places
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <a href="/search?from=${trip.from}&to=${trip.to}&date=${trip.departure_date}" 
+                                   class="btn btn-sm btn-outline-primary w-100">
+                                    Réserver <i class="fas fa-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading upcoming trips:', error);
+            }
+        }
+        
+        // Initialize
+        loadRoutesAndCities();
+        loadUpcomingTrips();
+        
+        // Form validation
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            const operator = document.getElementById('operator').value;
+            if (!operator) {
+                e.preventDefault();
+                alert(langManager.translate('search.select_operator'));
+            }
+        });
+    </script>
+</body>
+</html>

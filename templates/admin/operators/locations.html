@@ -1,0 +1,239 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ operator.name }} - Locations{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h4 mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>{{ operator.name }} - Locations
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-building me-1"></i>{{ operator.code }} | Manage operator offices and pickup points
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin_bp.add_operator_location', operator_id=operator.id) }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Add Location
+                    </a>
+                    <a href="{{ url_for('admin_bp.operators') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Operators
+                    </a>
+                </div>
+            </div>
+
+            <!-- Operator Info Card -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="d-flex align-items-center">
+                                        {% if operator.logo %}
+                                            <img src="{{ url_for('static', filename='uploads/logos/' + operator.logo) }}" 
+                                                 alt="{{ operator.name }}" class="rounded me-3" style="width: 48px; height: 48px;">
+                                        {% else %}
+                                            <div class="bg-primary rounded d-flex align-items-center justify-content-center me-3" 
+                                                 style="width: 48px; height: 48px;">
+                                                <i class="fas fa-building text-white"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-bold">{{ operator.name }}</div>
+                                            <small class="text-muted">{{ operator.code }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Contact</small>
+                                    <div>{{ operator.contact_phone or 'N/A' }}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Email</small>
+                                    <div>{{ operator.contact_email or 'N/A' }}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Total Locations</small>
+                                    <div class="fw-bold text-primary">{{ locations|length }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Operator Locations</h5>
+                    <span class="badge bg-primary">{{ locations|length }} locations</span>
+                </div>
+
+                <div class="card-body">
+                    {% if locations %}
+                    <div class="table-responsive">
+                        <table id="locationsTable" class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>City</th>
+                                    <th>Address</th>
+                                    <th>Contact</th>
+                                    <th>Landmark</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for location in locations %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-primary">{{ location.city }}</div>
+                                        {% if location.gps_coordinates %}
+                                            <small class="text-muted">
+                                                <i class="fas fa-map-pin me-1"></i>{{ location.gps_coordinates }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>{{ location.address }}</div>
+                                        {% if location.landmark %}
+                                            <small class="text-info">
+                                                <i class="fas fa-map-signs me-1"></i>{{ location.landmark }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if location.contact_phone %}
+                                            <div><i class="fas fa-phone me-1"></i>{{ location.contact_phone }}</div>
+                                        {% endif %}
+                                        {% if location.contact_person %}
+                                            <small class="text-muted">{{ location.contact_person }}</small>
+                                        {% endif %}
+                                        {% if not location.contact_phone and not location.contact_person %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if location.landmark %}
+                                            <span class="text-info">{{ location.landmark }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if location.is_main_office %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-star me-1"></i>Main Office
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Branch</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if location.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('admin_bp.edit_operator_location', location_id=location.id) }}" 
+                                               class="btn btn-sm btn-outline-warning" title="Edit Location">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteLocation({{ location.id }}, '{{ location.city }}')" 
+                                                    title="Delete Location">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No locations added yet</h5>
+                        <p class="text-muted">Add locations to help passengers find the right pickup and dropoff points.</p>
+                        <a href="{{ url_for('admin_bp.add_operator_location', operator_id=operator.id) }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add First Location
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Location</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the location in "<span id="locationCity"></span>"?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This action cannot be undone. Make sure this location is not being used in any route assignments.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Location</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    if ($('#locationsTable').length && $('#locationsTable tbody tr').length > 0) {
+        // Check if DataTable is already initialized and destroy it first
+        if ($.fn.DataTable.isDataTable('#locationsTable')) {
+            $('#locationsTable').DataTable().destroy();
+        }
+        
+        $('#locationsTable').DataTable({
+            responsive: true,
+            order: [[4, 'desc'], [0, 'asc']], // Sort by type (main office first), then city
+            pageLength: 25,
+            columnDefs: [
+                { orderable: false, targets: [6] } // Disable sorting on Actions column
+            ],
+            language: {
+                search: "Search locations:",
+                lengthMenu: "Show _MENU_ locations per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ locations",
+                infoEmpty: "No locations available",
+                zeroRecords: "No matching locations found"
+            }
+        });
+    }
+});
+
+function deleteLocation(locationId, cityName) {
+    $('#locationCity').text(cityName);
+    $('#deleteForm').attr('action', '/admin/operators/locations/' + locationId + '/delete');
+    $('#deleteModal').modal({
+        backdrop: false
+    }).modal('show');
+}
+</script>
+{% endblock %}

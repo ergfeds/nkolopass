@@ -1,0 +1,687 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Seat Map - {{ bus.plate_number }} - Admin Panel - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+            <div>
+                <h1 class="h3 mb-1">
+                    <i class="fas fa-th"></i> Seat Map Configuration
+                </h1>
+                <p class="text-muted mb-3 mb-md-0">
+                    Bus: <strong>{{ bus.plate_number }}</strong> | 
+                    Capacity: <strong>{{ effective_capacity }} seats</strong> |
+                    Type: <span class="badge bg-{{ 'warning' if bus.bus_type.name == 'VIP' else 'info' }}">{{ bus.bus_type.name }}</span>
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('admin_bp.buses') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Buses
+                </a>
+                <button type="button" class="btn btn-success" onclick="saveSeatLayout()">
+                    <i class="fas fa-save"></i> Save Layout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bus"></i> Bus Layout
+                    </h6>
+                    <div class="layout-controls">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="generateDefaultLayout()">
+                            <i class="fas fa-magic"></i> Auto Generate
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="resetLayout()">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Bus visualization -->
+                <div class="bus-container">
+                    <div class="bus-front">
+                        <div class="driver-area">
+                            <i class="fas fa-steering-wheel"></i>
+                            <span>Driver</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bus-body">
+                        <div class="aisle-container">
+                            <div class="seat-section left-section" id="leftSection">
+                                <!-- Left seats will be generated here -->
+                            </div>
+                            
+                            <div class="aisle">
+                                <div class="aisle-label">AISLE</div>
+                            </div>
+                            
+                            <div class="seat-section right-section" id="rightSection">
+                                <!-- Right seats will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bus-back">
+                        <div class="back-area">
+                            <i class="fas fa-door-open"></i>
+                            <span>Exit</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-cog"></i> Layout Controls
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="control-group mb-3">
+                    <label class="form-label">Seats per Row</label>
+                    <select class="form-select" id="seatsPerRow" onchange="updateLayout()">
+                        <option value="2" {{ 2 == seats_per_row|default(4) and 'selected' or '' }}>2 seats (1+1)</option>
+                        <option value="3" {{ 3 == seats_per_row|default(4) and 'selected' or '' }}>3 seats (2+1)</option>
+                        <option value="4" {{ 4 == seats_per_row|default(4) and 'selected' or '' }}>4 seats (2+2)</option>
+                        <option value="5" {{ 5 == seats_per_row|default(4) and 'selected' or '' }}>5 seats (3+2)</option>
+                    </select>
+                </div>
+                
+                <div class="control-group mb-3">
+                    <label class="form-label">Total Capacity</label>
+                    <input type="number" class="form-control" id="totalCapacity" value="{{ effective_capacity }}" min="10" max="100" onchange="updateCapacity()">
+                </div>
+                
+                <div class="control-group mb-4">
+                    <label class="form-label">Layout Style</label>
+                    <select class="form-select" id="layoutStyle" onchange="updateLayoutStyle()">
+                        <option value="standard">Standard Bus</option>
+                        <option value="luxury">Luxury Coach</option>
+                        <option value="minibus">Minibus</option>
+                    </select>
+                </div>
+                
+                <button type="button" class="btn btn-primary w-100 mb-2" onclick="previewLayout()">
+                    <i class="fas fa-eye"></i> Preview Changes
+                </button>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-info-circle"></i> Seat Legend
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="seat-example available"></div>
+                        <span>Available Seat</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-example selected"></div>
+                        <span>Selected Seat</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-example blocked"></div>
+                        <span>Blocked/Maintenance</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="seat-example premium"></div>
+                        <span>Premium Seat</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-pie"></i> Layout Summary
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="summary-stats">
+                    <div class="stat-row">
+                        <span>Total Seats:</span>
+                        <span id="totalSeats">{{ effective_capacity }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Rows:</span>
+                        <span id="totalRows">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Configuration:</span>
+                        <span id="seatConfig">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Confirmation Modal -->
+<div class="modal fade" id="saveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Save Seat Layout</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to save this seat layout?</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    This will update the seat configuration for bus <strong>{{ bus.plate_number }}</strong>.
+                    Existing bookings will not be affected.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="confirmSave()">
+                    <i class="fas fa-save"></i> Save Layout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bus-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--space);
+    border: 2px solid var(--admin-gray-300);
+}
+
+.bus-front,
+.bus-back {
+    background: var(--admin-gray-600);
+    color: white;
+    text-align: center;
+    padding: var(--space-sm);
+    border-radius: var(--radius);
+    margin-bottom: var(--space-sm);
+}
+
+.bus-back {
+    margin-top: var(--space-sm);
+    margin-bottom: 0;
+}
+
+.driver-area,
+.back-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.bus-body {
+    background: white;
+    border-radius: var(--radius);
+    padding: var(--space);
+    min-height: 400px;
+}
+
+.aisle-container {
+    display: flex;
+    gap: var(--space);
+    height: 100%;
+}
+
+.seat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.aisle {
+    width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to bottom, var(--admin-gray-100), var(--admin-gray-200));
+    border-radius: var(--radius);
+    position: relative;
+}
+
+.aisle-label {
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--admin-gray-600);
+    letter-spacing: 2px;
+}
+
+.seat-row {
+    display: flex;
+    gap: var(--space-xs);
+    justify-content: center;
+}
+
+.seat {
+    width: 35px;
+    height: 35px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--admin-gray-300);
+    background: var(--admin-success);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.seat:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.seat.available {
+    background: var(--admin-success);
+    border-color: #059669;
+}
+
+.seat.selected {
+    background: var(--admin-primary);
+    border-color: var(--admin-primary-dark);
+}
+
+.seat.blocked {
+    background: var(--admin-danger);
+    border-color: #dc2626;
+}
+
+.seat.premium {
+    background: linear-gradient(135deg, var(--admin-warning) 0%, #d97706 100%);
+    border-color: #d97706;
+}
+
+/* Legend */
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 0.875rem;
+}
+
+.seat-example {
+    width: 25px;
+    height: 25px;
+    border-radius: var(--radius-sm);
+    border: 2px solid;
+    flex-shrink: 0;
+}
+
+.seat-example.available {
+    background: var(--admin-success);
+    border-color: #059669;
+}
+
+.seat-example.selected {
+    background: var(--admin-primary);
+    border-color: var(--admin-primary-dark);
+}
+
+.seat-example.blocked {
+    background: var(--admin-danger);
+    border-color: #dc2626;
+}
+
+.seat-example.premium {
+    background: linear-gradient(135deg, var(--admin-warning) 0%, #d97706 100%);
+    border-color: #d97706;
+}
+
+/* Summary stats */
+.summary-stats {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.stat-row {
+    display: flex;
+    justify-content: between;
+    font-size: 0.875rem;
+}
+
+.stat-row span:first-child {
+    color: var(--admin-gray-600);
+}
+
+.stat-row span:last-child {
+    font-weight: 600;
+    color: var(--admin-gray-800);
+    margin-left: auto;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .bus-container {
+        max-width: 100%;
+        padding: var(--space-sm);
+    }
+    
+    .seat {
+        width: 30px;
+        height: 30px;
+        font-size: 0.7rem;
+    }
+    
+    .aisle {
+        width: 40px;
+    }
+    
+    .aisle-label {
+        font-size: 0.65rem;
+    }
+    
+    .layout-controls {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+    
+    .layout-controls .btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* Loading state */
+.bus-container.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.bus-container.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border: 3px solid var(--admin-gray-300);
+    border-top-color: var(--admin-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentLayout = [];
+const busCapacity = {{ effective_capacity }};
+const busId = {{ bus.id }};
+
+// Initialize seat layout on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // If server provided an existing layout, load it; otherwise generate default
+    const provided = {{ (initial_layout | tojson) if initial_layout is defined else '[]' }};
+    if (Array.isArray(provided) && provided.length > 0) {
+        currentLayout = provided;
+        renderLayout();
+        updateSummary();
+    } else {
+        generateDefaultLayout();
+    }
+});
+
+function generateDefaultLayout() {
+    const seatsPerRow = parseInt(document.getElementById('seatsPerRow').value);
+    const totalCapacity = parseInt(document.getElementById('totalCapacity').value);
+    
+    currentLayout = [];
+    let seatNumber = 1;
+    
+    const rows = Math.ceil(totalCapacity / seatsPerRow);
+    
+    for (let row = 0; row < rows; row++) {
+        const rowSeats = [];
+        const seatsInThisRow = Math.min(seatsPerRow, totalCapacity - (row * seatsPerRow));
+        
+        for (let seat = 0; seat < seatsInThisRow; seat++) {
+            rowSeats.push({
+                number: seatNumber,
+                position: getSeatPosition(seat, seatsPerRow),
+                type: 'available',
+                side: seat < Math.ceil(seatsPerRow / 2) ? 'left' : 'right'
+            });
+            seatNumber++;
+        }
+        currentLayout.push(rowSeats);
+    }
+    
+    renderLayout();
+    updateSummary();
+}
+
+function getSeatPosition(seatIndex, seatsPerRow) {
+    const positions = {
+        2: ['A', 'B'],
+        3: ['A', 'B', 'C'],
+        4: ['A', 'B', 'C', 'D'],
+        5: ['A', 'B', 'C', 'D', 'E']
+    };
+    return positions[seatsPerRow][seatIndex] || 'X';
+}
+
+function renderLayout() {
+    const leftSection = document.getElementById('leftSection');
+    const rightSection = document.getElementById('rightSection');
+    
+    leftSection.innerHTML = '';
+    rightSection.innerHTML = '';
+    
+    currentLayout.forEach((row, rowIndex) => {
+        const leftSeats = row.filter(seat => seat.side === 'left');
+        const rightSeats = row.filter(seat => seat.side === 'right');
+        
+        // Create left row
+        if (leftSeats.length > 0) {
+            const leftRowDiv = document.createElement('div');
+            leftRowDiv.className = 'seat-row';
+            leftSeats.forEach(seat => {
+                const seatDiv = createSeatElement(seat, rowIndex);
+                leftRowDiv.appendChild(seatDiv);
+            });
+            leftSection.appendChild(leftRowDiv);
+        }
+        
+        // Create right row
+        if (rightSeats.length > 0) {
+            const rightRowDiv = document.createElement('div');
+            rightRowDiv.className = 'seat-row';
+            rightSeats.forEach(seat => {
+                const seatDiv = createSeatElement(seat, rowIndex);
+                rightRowDiv.appendChild(seatDiv);
+            });
+            rightSection.appendChild(rightRowDiv);
+        }
+    });
+}
+
+function createSeatElement(seat, rowIndex) {
+    const seatDiv = document.createElement('div');
+    seatDiv.className = `seat ${seat.type}`;
+    seatDiv.textContent = seat.number;
+    seatDiv.title = `Seat ${seat.number} (${seat.position})`;
+    seatDiv.onclick = () => toggleSeatType(rowIndex, seat.number);
+    return seatDiv;
+}
+
+function toggleSeatType(rowIndex, seatNumber) {
+    currentLayout.forEach(row => {
+        row.forEach(seat => {
+            if (seat.number === seatNumber) {
+                const types = ['available', 'blocked', 'premium'];
+                const currentIndex = types.indexOf(seat.type);
+                seat.type = types[(currentIndex + 1) % types.length];
+            }
+        });
+    });
+    renderLayout();
+}
+
+function updateLayout() {
+    generateDefaultLayout();
+}
+
+function updateCapacity() {
+    const newCapacity = parseInt(document.getElementById('totalCapacity').value);
+    if (newCapacity >= 10 && newCapacity <= 100) {
+        generateDefaultLayout();
+    }
+}
+
+function updateLayoutStyle() {
+    const style = document.getElementById('layoutStyle').value;
+    
+    switch (style) {
+        case 'luxury':
+            document.getElementById('seatsPerRow').value = '3';
+            break;
+        case 'minibus':
+            document.getElementById('seatsPerRow').value = '2';
+            break;
+        default:
+            document.getElementById('seatsPerRow').value = '4';
+    }
+    
+    updateLayout();
+}
+
+function updateSummary() {
+    const totalSeats = currentLayout.flat().length;
+    const totalRows = currentLayout.length;
+    const seatsPerRow = document.getElementById('seatsPerRow').value;
+    
+    document.getElementById('totalSeats').textContent = totalSeats;
+    document.getElementById('totalRows').textContent = totalRows;
+    document.getElementById('seatConfig').textContent = `${seatsPerRow} per row`;
+}
+
+function previewLayout() {
+    renderLayout();
+    updateSummary();
+    showToast('Layout preview updated!', 'info');
+}
+
+function resetLayout() {
+    if (confirm('Are you sure you want to reset the seat layout?')) {
+        generateDefaultLayout();
+        showToast('Layout reset to default', 'warning');
+    }
+}
+
+function saveSeatLayout() {
+    $('#saveModal').modal({
+        backdrop: false
+    }).modal('show');
+}
+
+function confirmSave() {
+    const busContainer = document.querySelector('.bus-container');
+    busContainer.classList.add('loading');
+    
+    // Prepare layout data
+    const layoutData = {
+        layout: currentLayout,
+        capacity: currentLayout.flat().length,
+        configuration: {
+            seatsPerRow: parseInt(document.getElementById('seatsPerRow').value),
+            style: document.getElementById('layoutStyle').value
+        }
+    };
+    
+    // Send to server
+    fetch(`/admin/buses/${busId}/seat-map`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(layoutData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        busContainer.classList.remove('loading');
+        $('#saveModal').modal('hide');
+        
+        if (data.success) {
+            showToast('Seat layout saved successfully!', 'success');
+        } else {
+            showToast('Error saving layout: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        busContainer.classList.remove('loading');
+        $('#saveModal').modal('hide');
+        showToast('Network error occurred', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function showToast(message, type) {
+    // Create toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

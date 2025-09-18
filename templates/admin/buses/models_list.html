@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Bus Models - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3"><i class="fas fa-cubes"></i> Bus Models</h1>
+  <a href="{{ url_for('admin_bp.add_bus_model') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add Bus Model</a>
+  </div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover" id="modelsTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Capacity</th>
+            <th>Seats/Row</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in models %}
+          <tr>
+            <td>{{ m.name }}</td>
+            <td>{{ m.bus_type.name }}</td>
+            <td>{{ m.capacity }}</td>
+            <td>{{ m.seats_per_row }}</td>
+            <td>{{ m.created_at.strftime('%d/%m/%Y') }}</td>
+            <td>
+              <a href="{{ url_for('admin_bp.edit_bus_model', id=m.id) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+              <a href="{{ url_for('admin_bp.assign_from_model') }}?select={{ m.id }}" class="btn btn-sm btn-outline-success"><i class="fas fa-share"></i> Assign</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

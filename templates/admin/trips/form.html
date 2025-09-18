@@ -1,0 +1,312 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-bus me-2"></i>{{ title }}
+                </h2>
+                <a href="{{ url_for('admin_bp.trips') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Trips
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Trip Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" novalidate>
+                                {{ form.hidden_tag() }}
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.route_id.label(class="form-label") }}
+                                        {{ form.route_id(class="form-select" + (" is-invalid" if form.route_id.errors else "")) }}
+                                        {% for error in form.route_id.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.operator_id.label(class="form-label") }}
+                                        {{ form.operator_id(class="form-select" + (" is-invalid" if form.operator_id.errors else "")) }}
+                                        {% for error in form.operator_id.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                        <small class="form-text text-muted">Operator must be assigned to the selected route</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.bus_id.label(class="form-label") }}
+                                    {{ form.bus_id(class="form-select" + (" is-invalid" if form.bus_id.errors else "")) }}
+                                    {% for error in form.bus_id.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                    <small class="form-text text-muted">Bus must belong to the selected operator</small>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.departure_time.label(class="form-label") }}
+                                        {{ form.departure_time(class="form-control" + (" is-invalid" if form.departure_time.errors else "")) }}
+                                        {% for error in form.departure_time.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                        <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        {{ form.arrival_time.label(class="form-label") }}
+                                        {{ form.arrival_time(class="form-control" + (" is-invalid" if form.arrival_time.errors else "")) }}
+                                        {% for error in form.arrival_time.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                        <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.price.label(class="form-label") }}
+                                    <div class="input-group">
+                                        {{ form.price(class="form-control" + (" is-invalid" if form.price.errors else "")) }}
+                                        <span class="input-group-text">FCFA</span>
+                                    </div>
+                                    {% for error in form.price.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                    <small class="form-text text-muted">Trip price for passengers</small>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>{{ "Update Trip" if trip else "Create Trip" }}
+                                    </button>
+                                    <a href="{{ url_for('admin_bp.trips') }}" class="btn btn-outline-secondary">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    {% if trip %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Trip Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center mb-3">
+                                <div class="col-6">
+                                    <div class="border-end">
+                                        <h5 class="text-primary mb-1">{{ trip.available_seats }}</h5>
+                                        <small class="text-muted">Available Seats</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <h5 class="text-success mb-1">
+                                        {% if trip.status == 'scheduled' %}
+                                            <i class="fas fa-clock"></i>
+                                        {% elif trip.status == 'departed' %}
+                                            <i class="fas fa-bus"></i>
+                                        {% elif trip.status == 'arrived' %}
+                                            <i class="fas fa-check-circle"></i>
+                                        {% elif trip.status == 'cancelled' %}
+                                            <i class="fas fa-times-circle"></i>
+                                        {% endif %}
+                                    </h5>
+                                    <small class="text-muted">{{ trip.status.title() }}</small>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-{% if trip.status == 'scheduled' %}info{% elif trip.status == 'cancelled' %}danger{% else %}success{% endif %}">
+                                <h6 class="mb-2">Status: {{ trip.status.title() }}</h6>
+                                {% if trip.status == 'scheduled' %}
+                                    <p class="mb-0 small">This trip can be modified or cancelled.</p>
+                                {% elif trip.status == 'departed' %}
+                                    <p class="mb-0 small">Trip has departed and cannot be modified.</p>
+                                {% elif trip.status == 'arrived' %}
+                                    <p class="mb-0 small">Trip has been completed successfully.</p>
+                                {% elif trip.status == 'cancelled' %}
+                                    <p class="mb-0 small">This trip has been cancelled.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-lightbulb me-2"></i>Trip Creation Tips
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-check-circle me-2"></i>Requirements</h6>
+                                <ul class="mb-0 small">
+                                    <li>Route must exist and be active</li>
+                                    <li>Operator must be assigned to the route</li>
+                                    <li>Bus must belong to the selected operator</li>
+                                    <li>Departure time must be in the future</li>
+                                    <li>Arrival time must be after departure</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-magic me-2"></i>Auto-Generation</h6>
+                                <p class="mb-0 small">
+                                    For multiple trips, consider using the 
+                                    <a href="{{ url_for('admin_bp.generate_trips') }}" class="alert-link">
+                                        trip generation tool
+                                    </a> instead.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-question-circle me-2"></i>Field Help
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="accordion" id="helpAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#routeHelp">
+                                            Route & Operator
+                                        </button>
+                                    </h2>
+                                    <div id="routeHelp" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                        <div class="accordion-body small">
+                                            Select the route first, then choose an operator that is assigned to service that route.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#timeHelp">
+                                            Time Settings
+                                        </button>
+                                    </h2>
+                                    <div id="timeHelp" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                        <div class="accordion-body small">
+                                            Use the datetime picker or enter manually. Arrival time is automatically calculated based on route duration.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#priceHelp">
+                                            Pricing
+                                        </button>
+                                    </h2>
+                                    <div id="priceHelp" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                        <div class="accordion-body small">
+                                            Price is automatically suggested based on route assignment pricing and bus type (VIP/Regular).
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-calculate arrival time based on departure and route duration
+    $('#departure_time, #route_id').on('change', function() {
+        const routeSelect = $('#route_id');
+        const departureInput = $('#departure_time');
+        const arrivalInput = $('#arrival_time');
+        
+        if (routeSelect.val() && departureInput.val()) {
+            // This would require route duration data - for now, add 2 hours as default
+            const departure = new Date(departureInput.val());
+            if (!isNaN(departure.getTime())) {
+                const arrival = new Date(departure.getTime() + (2 * 60 * 60 * 1000)); // Add 2 hours
+                const arrivalString = arrival.toISOString().slice(0, 16);
+                if (!arrivalInput.val()) {
+                    arrivalInput.val(arrivalString);
+                }
+            }
+        }
+    });
+
+    // Filter buses based on selected operator
+    $('#operator_id').on('change', function() {
+        const operatorId = $(this).val();
+        const busSelect = $('#bus_id');
+        
+        if (operatorId) {
+            // Reset bus selection
+            busSelect.empty().append('<option value="">Select Bus...</option>');
+            
+            // Filter buses (this would typically be done via AJAX in a real application)
+            busSelect.find('option').each(function() {
+                const option = $(this);
+                if (option.val() && !option.text().includes('(' + $('#operator_id option:selected').text() + ')')) {
+                    option.hide();
+                } else {
+                    option.show();
+                }
+            });
+        }
+    });
+
+    // Validate times
+    $('#departure_time, #arrival_time').on('change', function() {
+        const departure = new Date($('#departure_time').val());
+        const arrival = new Date($('#arrival_time').val());
+        
+        if (departure && arrival && departure >= arrival) {
+            $('#arrival_time').addClass('is-invalid');
+            if (!$('#arrival_time').siblings('.invalid-feedback').length) {
+                $('#arrival_time').after('<div class="invalid-feedback">Arrival time must be after departure time</div>');
+            }
+        } else {
+            $('#arrival_time').removeClass('is-invalid');
+            $('#arrival_time').siblings('.invalid-feedback').remove();
+        }
+        
+        // Check if departure is in the past
+        const now = new Date();
+        if (departure && departure <= now) {
+            $('#departure_time').addClass('is-invalid');
+            if (!$('#departure_time').siblings('.invalid-feedback').length) {
+                $('#departure_time').after('<div class="invalid-feedback">Departure time must be in the future</div>');
+            }
+        } else {
+            $('#departure_time').removeClass('is-invalid');
+            $('#departure_time').siblings('.invalid-feedback').remove();
+        }
+    });
+
+    // Set minimum datetime to now
+    const now = new Date();
+    const minDateTime = now.toISOString().slice(0, 16);
+    $('#departure_time, #arrival_time').attr('min', minDateTime);
+});
+</script>
+{% endblock %}

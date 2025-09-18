@@ -1,0 +1,124 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Bulk Creation Results - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Bulk Creation Results</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_bp.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_bp.buses') }}">Buses</a></li>
+                    <li class="breadcrumb-item active">Bulk Results</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h3 class="card-title">
+                    <i class="fas fa-check-circle mr-2"></i>Successfully Created Buses
+                </h3>
+            </div>
+            
+            <div class="card-body">
+                <!-- Summary -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="info-box bg-success">
+                            <span class="info-box-icon"><i class="fas fa-bus"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Total Buses Created</span>
+                                <span class="info-box-number">{{ results.total_buses }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="info-box bg-info">
+                            <span class="info-box-icon"><i class="fas fa-cog"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Bus Model Created</span>
+                                <span class="info-box-number">{{ results.bus_model_name }}</span>
+                                <small class="text-muted">Model ID: {{ results.bus_model_id }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bus List -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="resultsTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Plate Number</th>
+                                <th>Agency/Operator</th>
+                                <th>Bus Model ID</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bus in results.buses %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <strong class="text-primary">{{ bus.plate_number }}</strong>
+                                </td>
+                                <td>{{ bus.operator_name }}</td>
+                                <td>
+                                    <span class="badge badge-info">{{ bus.bus_model_id }}</span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin_bp.bus_seat_map', id=bus.bus_model_id) }}" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       title="Configure Seat Layout">
+                                        <i class="fas fa-th mr-1"></i>Layout
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Important Notes -->
+                <div class="alert alert-warning mt-4">
+                    <h6><i class="fas fa-exclamation-triangle mr-2"></i>Important Notes</h6>
+                    <ul class="mb-0">
+                        <li><strong>Bus Model ID {{ results.bus_model_id }}</strong> has been created as the template for all these buses</li>
+                        <li>Any changes to the seat layout will automatically apply to all {{ results.total_buses }} buses</li>
+                        <li>You can configure the seat layout using the "Layout" button above</li>
+                        <li>All buses are automatically activated and ready for trip assignment</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card-footer">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <a href="{{ url_for('admin_bp.buses') }}" class="btn btn-secondary">
+                            <i class="fas fa-list mr-2"></i>View All Buses
+                        </a>
+                    </div>
+                    <div class="col-sm-6 text-right">
+                        <a href="{{ url_for('admin_bp.add_bus') }}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Create More Buses
+                        </a>
+                        <a href="{{ url_for('admin_bp.bus_seat_map', id=results.bus_model_id) }}" class="btn btn-success ml-2">
+                            <i class="fas fa-th mr-2"></i>Configure Seat Layout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

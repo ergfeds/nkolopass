@@ -1,0 +1,160 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Operators - Admin Panel - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">
+                <i class="fas fa-building"></i> Operators Management
+            </h1>
+            <a href="{{ url_for('admin_bp.add_operator') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Operator
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-list"></i> All Operators
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if operators %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="operatorsTable">
+                            <thead>
+                                <tr>
+                                    <th>Logo</th>
+                                    <th>Name</th>
+                                    <th>Code</th>
+                                    <th>Contact</th>
+                                    <th>Buses</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for operator in operators %}
+                                <tr>
+                                    <td class="text-center">
+                                        {% if operator.logo_url %}
+                                            <img src="{{ operator.logo_url }}" onerror="this.onerror=null;this.src='https://via.placeholder.com/50x50?text=Logo';" 
+                                                 alt="{{ operator.name }}" 
+                                                 class="rounded" 
+                                                 style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                                 style="width: 50px; height: 50px;">
+                                                <i class="fas fa-building text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ operator.name }}</div>
+                                        {% if operator.description %}
+                                            <small class="text-muted">{{ operator.description[:50] }}{% if operator.description|length > 50 %}...{% endif %}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ operator.code }}</span>
+                                    </td>
+                                    <td>
+                                        {% if operator.contact_email %}
+                                            <div><i class="fas fa-envelope"></i> {{ operator.contact_email }}</div>
+                                        {% endif %}
+                                        {% if operator.contact_phone %}
+                                            <div><i class="fas fa-phone"></i> {{ operator.contact_phone }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ operator.buses|length }}</span>
+                                    </td>
+                                    <td>
+                                        {% if operator.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ operator.created_at.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('admin_bp.operator_bus_types', operator_id=operator.id) }}" 
+                                               class="btn btn-sm btn-outline-info" 
+                                               title="Configure Bus Types">
+                                                <i class="fas fa-cogs"></i>
+                                            </a>
+                                            <a href="{{ url_for('admin_bp.edit_operator', id=operator.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger" 
+                                                    onclick="confirmDelete('{{ operator.name }}', '{{ url_for('admin_bp.delete_operator', id=operator.id) }}')"
+                                                    title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-building fa-4x text-gray-300 mb-4"></i>
+                        <h4 class="text-gray-600">No Operators Found</h4>
+                        <p class="text-gray-500 mb-4">Get started by adding your first bus operator.</p>
+                        <a href="{{ url_for('admin_bp.add_operator') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add First Operator
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete operator <strong id="deleteOperatorName"></strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone and will also delete all associated buses and trips.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(operatorName, deleteUrl) {
+    $('#deleteOperatorName').text(operatorName);
+    $('#deleteForm').attr('action', deleteUrl);
+    $('#deleteModal').modal({
+        backdrop: false
+    }).modal('show');
+}
+</script>
+{% endblock %}
