@@ -56,11 +56,11 @@
                     </div>
                     
                     <div class="mb-3">
-                        {{ form.description.label(class="form-label") }}
-                        {{ form.description(class="form-control", rows="3", placeholder="Brief description of the operator...") }}
-                        {% if form.description.errors %}
+                        {{ form.contact_person.label(class="form-label") }}
+                        {{ form.contact_person(class="form-control", placeholder="Name of the contact person...") }}
+                        {% if form.contact_person.errors %}
                             <div class="text-danger mt-1">
-                                {% for error in form.description.errors %}
+                                {% for error in form.contact_person.errors %}
                                     <small>{{ error }}</small>
                                 {% endfor %}
                             </div>
@@ -69,11 +69,11 @@
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            {{ form.contact_email.label(class="form-label") }}
-                            {{ form.contact_email(class="form-control", placeholder="contact@operator.com") }}
-                            {% if form.contact_email.errors %}
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control", placeholder="contact@operator.com") }}
+                            {% if form.email.errors %}
                                 <div class="text-danger mt-1">
-                                    {% for error in form.contact_email.errors %}
+                                    {% for error in form.email.errors %}
                                         <small>{{ error }}</small>
                                     {% endfor %}
                                 </div>
@@ -81,11 +81,11 @@
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            {{ form.contact_phone.label(class="form-label") }}
-                            {{ form.contact_phone(class="form-control", placeholder="+237 XXX XXX XXX") }}
-                            {% if form.contact_phone.errors %}
+                            {{ form.phone.label(class="form-label") }}
+                            {{ form.phone(class="form-control", placeholder="+237 XXX XXX XXX") }}
+                            {% if form.phone.errors %}
                                 <div class="text-danger mt-1">
-                                    {% for error in form.contact_phone.errors %}
+                                    {% for error in form.phone.errors %}
                                         <small>{{ error }}</small>
                                     {% endfor %}
                                 </div>
@@ -186,8 +186,8 @@
                 <div class="row text-center">
                     <div class="col-6">
                         <div class="border-right">
-                            <h4 class="text-primary">{{ operator.buses|length }}</h4>
-                            <small class="text-muted">Buses</small>
+                            <h4 class="text-primary">{{ operator.bus_type_configs|length }}</h4>
+                            <small class="text-muted">Bus Types</small>
                         </div>
                     </div>
                     <div class="col-6">

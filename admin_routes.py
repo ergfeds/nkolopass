@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from models import db, Operator, Route, Trip, Booking, Customer, OperatorBusType, OperatorLocation, RouteOperatorAssignment, BusType
+from forms import OperatorForm
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -97,21 +98,18 @@ def add_operator():
     if 'admin_id' not in session:
         return redirect(url_for('admin_bp.login'))
     
-    if request.method == 'POST':
-        name = request.form.get('name')
-        code = request.form.get('code')
-        contact_person = request.form.get('contact_person')
-        phone = request.form.get('phone')
-        email = request.form.get('email')
-        address = request.form.get('address')
-        
+    form = OperatorForm()
+    
+    if form.validate_on_submit():
         operator = Operator(
-            name=name,
-            code=code,
-            contact_person=contact_person,
-            phone=phone,
-            email=email,
-            address=address
+            name=form.name.data,
+            code=form.code.data,
+            contact_person=form.contact_person.data,
+            logo_url=form.logo_url.data,
+            email=form.email.data,
+            phone=form.phone.data,
+            address=form.address.data,
+            is_active=form.is_active.data
         )
         
         db.session.add(operator)
@@ -119,7 +117,7 @@ def add_operator():
         flash('Operator added successfully!', 'success')
         return redirect(url_for('admin_bp.operators'))
     
-    return render_template('admin/operators/form.html', title='Add Operator')
+    return render_template('admin/operators/form.html', form=form, title='Add Operator')
 
 @admin_bp.route('/operators/<int:id>/edit', methods=['GET', 'POST'])
 def edit_operator(id):
@@ -127,20 +125,15 @@ def edit_operator(id):
         return redirect(url_for('admin_bp.login'))
     
     operator = Operator.query.get_or_404(id)
+    form = OperatorForm(obj=operator)
     
-    if request.method == 'POST':
-        operator.name = request.form.get('name')
-        operator.code = request.form.get('code')
-        operator.contact_person = request.form.get('contact_person')
-        operator.phone = request.form.get('phone')
-        operator.email = request.form.get('email')
-        operator.address = request.form.get('address')
-        
+    if form.validate_on_submit():
+        form.populate_obj(operator)
         db.session.commit()
         flash('Operator updated successfully!', 'success')
         return redirect(url_for('admin_bp.operators'))
     
-    return render_template('admin/operators/form.html', operator=operator, title='Edit Operator')
+    return render_template('admin/operators/form.html', form=form, operator=operator, title='Edit Operator')
 
 @admin_bp.route('/bus-types')
 def bus_types():
