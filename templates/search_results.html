@@ -1,622 +1,910 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="page.search_results_title">Résultats de Recherche - Nkolo Pass</title>
+{% extends 'base.html' %}
+{% block title %}{{ 'Search Results' if current_language=='en' else 'Résultats de recherche' }} — {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* New Modern Search Results Design */
+  .search-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem 0;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .search-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="20" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+  }
+  
+  .search-header h2 {
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    font-size: 1.75rem;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .search-meta {
+    opacity: 0.95;
+    font-size: 1rem;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .results-container {
+    min-height: 60vh;
+  }
+  
+  /* New Card Design */
+  .result-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    position: relative;
+    backdrop-filter: blur(10px);
+  }
+  
+  .result-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .result-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    border-color: rgba(102, 126, 234, 0.3);
+  }
+  
+  .result-card:hover::before {
+    opacity: 1;
+  }
+  
+  /* Trip Header - Simplified Layout */
+  .trip-header {
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+    position: relative;
+  }
+  
+  .operator-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .operator-logo {
+    height: 40px;
+    width: 40px;
+    object-fit: contain;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    padding: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .operator-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+  }
+  
+  /* Route Section - Redesigned */
+  .route-timeline {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: white;
+    position: relative;
+  }
+  
+  .route-point {
+    flex: 1;
+    text-align: center;
+    position: relative;
+  }
+  
+  .route-point-indicator {
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+    position: relative;
+    z-index: 2;
+  }
+  
+  .route-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #667eea;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  
+  .route-time {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  
+  .route-city {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+  
+  .route-connector {
+    flex: 2;
+    height: 2px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    position: relative;
+    margin: 0 2rem;
+    border-radius: 2px;
+  }
+  
+  .route-info-badge {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    white-space: nowrap;
+  }
+  
+  /* Trip Details Section */
+  .trip-details {
+    padding: 1rem 1.5rem;
+    background: white;
+  }
+  
+  .trip-features {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .bus-info-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(226, 232, 240, 0.6);
+  }
+  
+  .bus-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .bus-badge.vip {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+  }
+  
+  .bus-badge.regular {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  }
+  
+  .bus-type {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+  
+  .amenities-grid {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  
+  .amenity-icon {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #64748b;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(226, 232, 240, 0.6);
+  }
+  
+  .amenity-icon:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+  
+  .stops-section {
+    margin-bottom: 1rem;
+    padding: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 12px;
+    border-left: 4px solid #667eea;
+    border: 1px solid rgba(226, 232, 240, 0.6);
+  }
+  
+  .stops-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #667eea;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  
+  .stops-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .stop-item {
+    background: white;
+    color: #64748b;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .stop-item:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  }
+  
+  /* Booking Footer */
+  .booking-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-top: 1px solid rgba(226, 232, 240, 0.6);
+  }
+  
+  .seats-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .seats-count {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+  }
+  
+  .seats-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+  
+  .booking-action {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .price-info {
+    text-align: right;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+  
+  .price-amount {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .price-label {
+    font-size: 0.65rem;
+    opacity: 0.9;
+    margin: 0;
+  }
+  
+  .book-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  
+  .book-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    color: white;
+  }
+  
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+  }
+  
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #64748b;
+  }
+  
+  .empty-state i {
+    font-size: 3rem;
+    color: #cbd5e1;
+    margin-bottom: 1rem;
+  }
+  
+  .empty-state h4 {
+    color: #374151;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+  }
+  
+  .results-info {
+    background: white;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .results-count {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+  }
+  
+  .search-date {
+    color: #64748b;
+    font-size: 0.85rem;
+  }
+  
+  /* Responsive Design - Ultra Compact Mobile */
+  @media (max-width: 768px) {
+    .search-header {
+      padding: 1rem 0;
+      margin-bottom: 0.75rem;
+    }
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    .search-header h2 {
+      font-size: 1.3rem;
+    }
     
-    <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --dark-color: #1f2937;
-            --light-bg: #f3f4f6;
-        }
-        
-        body {
-            background-color: var(--light-bg);
-        }
-        
-        /* Language Switcher */
-        .lang-switcher {
-            display: flex;
-            gap: 5px;
-            background: white;
-            border-radius: 25px;
-            padding: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .lang-btn {
-            padding: 8px 16px;
-            border: none;
-            background: transparent;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .lang-btn.active {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        /* Search Summary */
-        .search-summary {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        /* Trip Card */
-        .trip-card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            transition: all 0.3s;
-            border: 2px solid #f0f0f0;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .trip-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        
-        .trip-card:hover {
-            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
-        }
-        
-        .trip-card:hover::before {
-            opacity: 1;
-        }
-        
-        .trip-card.departing-soon {
-            opacity: 0.6;
-            border-color: var(--warning-color);
-        }
-        
-        .trip-card.sold-out {
-            opacity: 0.5;
-        }
-        
-        .operator-logo {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-            border-radius: 8px;
-        }
-        
-        .bus-type-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .bus-type-badge.vip {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            color: white;
-        }
-        
-        .bus-type-badge.regular {
-            background: #e5e7eb;
-            color: #4b5563;
-        }
-        
-        .seats-indicator {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .seats-bar {
-            width: 100px;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .seats-bar-fill {
-            height: 100%;
-            background: var(--secondary-color);
-            transition: width 0.3s;
-        }
-        
-        .price-display {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-        
-        .select-seats-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 10px 30px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .select-seats-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .select-seats-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-        
-        /* Filters */
-        .filter-section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-        
-        .filter-chip {
-            display: inline-block;
-            padding: 8px 16px;
-            background: #f3f4f6;
-            border-radius: 20px;
-            margin: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .filter-chip.active {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        /* No Results */
-        .no-results {
-            text-align: center;
-            padding: 60px 20px;
-            background: white;
-            border-radius: 15px;
-        }
-        
-        .no-results-icon {
-            font-size: 64px;
-            color: #9ca3af;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold text-primary" href="/">
-                <i class="fas fa-bus"></i> Nkolo Pass
-            </a>
-            <div class="ms-auto d-flex align-items-center gap-3">
-                <div class="lang-switcher">
-                    <button class="lang-btn active" data-lang-switch="fr">FR</button>
-                    <button class="lang-btn" data-lang-switch="en">EN</button>
-                </div>
-            </div>
-        </div>
-    </nav>
+    .result-card {
+      margin-bottom: 0.75rem;
+      border-radius: 12px;
+    }
     
-    <!-- Main Content -->
-    <div class="container mt-4">
-        <!-- Search Summary -->
-        <div class="search-summary">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h4 class="mb-0">
-                        <span id="routeDisplay">{{ from_city }} → {{ to_city }}</span>
-                    </h4>
-                    <p class="mb-0 text-muted">
-                        <i class="fas fa-calendar me-2"></i>
-                        <span id="dateDisplay">{{ travel_date }}</span>
-                        <span class="mx-2">|</span>
-                        <i class="fas fa-bus me-2"></i>
-                        <span id="operatorDisplay">{{ operator_name }}</span>
-                    </p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <a href="#" class="btn btn-outline-primary" id="modifySearchBtn">
-                        <i class="fas fa-search me-2"></i>
-                        <span data-i18n="search.modify_search">Modifier la recherche</span>
-                    </a>
-                </div>
-            </div>
+    .trip-header {
+      padding: 0.75rem 1rem 0.5rem;
+    }
+    
+    .operator-logo {
+      height: 32px;
+      width: 32px;
+      padding: 4px;
+    }
+    
+    .operator-name {
+      font-size: 1rem;
+    }
+    
+    .route-timeline {
+      padding: 0.75rem 1rem;
+      flex-direction: row;
+    }
+    
+    .route-point {
+      margin-bottom: 0;
+      flex: 1;
+    }
+    
+    .route-point-indicator {
+      width: 8px;
+      height: 8px;
+      margin-bottom: 4px;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    }
+    
+    .route-label {
+      font-size: 0.6rem;
+      margin-bottom: 2px;
+    }
+    
+    .route-time {
+      font-size: 1rem;
+      margin-bottom: 2px;
+    }
+    
+    .route-city {
+      font-size: 0.8rem;
+    }
+    
+    .route-connector {
+      flex: 2;
+      height: 1px;
+      margin: 0 1rem;
+    }
+    
+    .route-info-badge {
+      top: -15px;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+    }
+    
+    .trip-details {
+      padding: 0.5rem 1rem;
+    }
+    
+    .trip-features {
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .bus-info-card {
+      padding: 6px 10px;
+    }
+    
+    .bus-badge {
+      padding: 3px 8px;
+      font-size: 0.65rem;
+    }
+    
+    .bus-type {
+      font-size: 0.8rem;
+    }
+    
+    .amenities-grid {
+      justify-content: flex-start;
+      gap: 4px;
+    }
+    
+    .amenity-icon {
+      width: 24px;
+      height: 24px;
+      font-size: 0.7rem;
+    }
+    
+    .stops-section {
+      padding: 8px;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stops-label {
+      font-size: 0.7rem;
+      margin-bottom: 4px;
+    }
+    
+    .stop-item {
+      padding: 2px 6px;
+      font-size: 0.7rem;
+    }
+    
+    .booking-footer {
+      padding: 0.75rem 1rem;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+    
+    .seats-info {
+      padding: 6px 10px;
+      justify-content: center;
+    }
+    
+    .seats-count {
+      padding: 3px 6px;
+      font-size: 0.7rem;
+    }
+    
+    .seats-label {
+      font-size: 0.8rem;
+    }
+    
+    .booking-action {
+      flex-direction: row;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .price-info {
+      padding: 0.5rem 0.75rem;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    
+    .price-amount {
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    
+    .price-label {
+      font-size: 0.6rem;
+    }
+    
+    .book-btn {
+      padding: 10px 16px;
+      font-size: 0.8rem;
+      flex: 1;
+      text-align: center;
+    }
+    
+    .results-info {
+      flex-direction: column;
+      gap: 0.25rem;
+      text-align: center;
+      padding: 0.5rem 0.75rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Search Header -->
+<div class="search-header">
+  <div class="container">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <h2 class="mb-0">
+          <i class="fa-solid fa-route me-2"></i>
+          {% if current_language=='en' %}
+            Search Results
+          {% else %}
+            Résultats de recherche
+          {% endif %}
+        </h2>
+        <div class="search-meta" id="searchRoute">
+          {% if current_language=='en' %}
+            Finding trips from <strong id="fromCity"></strong> to <strong id="toCity"></strong>
+          {% else %}
+            Recherche de trajets de <strong id="fromCity"></strong> à <strong id="toCity"></strong>
+          {% endif %}
         </div>
-        
-        <!-- Filters -->
-        <div class="filter-section">
-            <h6 class="mb-3" data-i18n="search.filters">Filtres</h6>
-            <div class="d-flex flex-wrap">
-                <span class="filter-chip active" data-filter="all" data-i18n="search.filter_all">Tous</span>
-                <span class="filter-chip" data-filter="vip" data-i18n="search.filter_vip">VIP</span>
-                <span class="filter-chip" data-filter="regular" data-i18n="search.filter_regular">Regular</span>
-                <span class="filter-chip" data-filter="morning" data-i18n="search.filter_morning">Matin (06h-12h)</span>
-                <span class="filter-chip" data-filter="afternoon" data-i18n="search.filter_afternoon">Après-midi (12h-18h)</span>
-                <span class="filter-chip" data-filter="evening" data-i18n="search.filter_evening">Soir (18h-00h)</span>
-            </div>
-        </div>
-        
-        <!-- Results Count -->
-        <div class="mb-3">
-            <h5><span id="resultsCount">0</span> <span data-i18n="search.trips_available">voyages disponibles</span></h5>
-        </div>
-        
-        <!-- Trip Results -->
-        <div id="tripResults">
-            <!-- Trip cards will be inserted here -->
-        </div>
-        
-        <!-- No Results -->
-        <div id="noResults" class="no-results" style="display: none;">
-            <div class="no-results-icon">
-                <i class="fas fa-search"></i>
-            </div>
-            <h4 data-i18n="search.no_results">Aucun voyage trouvé</h4>
-            <p class="text-muted" data-i18n="search.no_results_desc">Essayez de modifier vos critères de recherche</p>
-            <a href="#" class="btn btn-primary mt-3" id="newSearchBtn">
-                <i class="fas fa-arrow-left me-2"></i>
-                <span data-i18n="search.new_search">Nouvelle recherche</span>
-            </a>
-        </div>
+      </div>
+      <a class="btn btn-light btn-lg" href="/{{ current_language }}/">
+        <i class="fa-solid fa-pen-to-square me-2"></i>
+        {{ 'New Search' if current_language=='en' else 'Nouvelle recherche' }}
+      </a>
     </div>
+  </div>
+</div>
+
+<!-- Results Container -->
+<div class="container">
+  <!-- Results Info -->
+  <div id="resultInfo" class="results-info" style="display: none;">
+    <div class="results-count" id="resultsCount"></div>
+    <div class="search-date" id="searchDate"></div>
+  </div>
+  
+  <!-- Loading State -->
+  <div id="loadingState" class="loading-spinner">
+    <div class="spinner"></div>
+  </div>
+  
+  <!-- Results Grid -->
+  <div id="results" class="results-container"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const lang = "{{ current_language }}";
+  const params = new URLSearchParams(window.location.search);
+  const fromCity = params.get('from');
+  const toCity = params.get('to');
+  const date = params.get('date');
+  const operator = params.get('operator');
+
+  // Update header with search parameters
+  document.getElementById('fromCity').textContent = fromCity;
+  document.getElementById('toCity').textContent = toCity;
+
+  async function searchTrips() {
+    const loadingState = document.getElementById('loadingState');
+    const resultInfo = document.getElementById('resultInfo');
+    const container = document.getElementById('results');
     
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
-    
-    <script>
-        // Initialize language on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get current language from URL
-            const pathParts = window.location.pathname.split('/');
-            const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
-            
-            if (typeof langManager !== 'undefined') {
-                langManager.switchLanguage(currentLang);
-            }
-            
-            // Setup navigation buttons
-            setupNavigationButtons();
-        });
+    // Show loading state
+    loadingState.style.display = 'flex';
+    resultInfo.style.display = 'none';
+    container.innerHTML = '';
+
+    try {
+      const url = new URL('/api/search-trips', window.location.origin);
+      url.searchParams.set('from', fromCity);
+      url.searchParams.set('to', toCity);
+      url.searchParams.set('date', date);
+      if (operator) url.searchParams.set('operator', operator);
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      // Hide loading state
+      loadingState.style.display = 'none';
+
+      if (data.error) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-exclamation-triangle"></i>
+            <h4>${lang==='en'?'Error':'Erreur'}</h4>
+            <p>${data.error}</p>
+          </div>`;
+        return;
+      }
+
+      // Show results info
+      const totalTrips = data.total_trips || 0;
+      document.getElementById('resultsCount').textContent = `${totalTrips} ${lang==='en'?'trips found':'trajets trouvés'}`;
+      document.getElementById('searchDate').textContent = new Date(date).toLocaleDateString(lang==='en'?'en-US':'fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      resultInfo.style.display = 'flex';
+
+      const trips = data.trips || [];
+      if (!trips.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-bus"></i>
+            <h4>${lang==='en'?'No trips found':'Aucun trajet trouvé'}</h4>
+            <p>${lang==='en'?'Try searching for a different date or route.':'Essayez de rechercher une autre date ou un autre itinéraire.'}</p>
+            <a href="/${lang}/" class="btn btn-primary mt-3">
+              <i class="fa-solid fa-search me-2"></i>
+              ${lang==='en'?'Search Again':'Rechercher à nouveau'}
+            </a>
+          </div>`;
+        return;
+      }
+
+      // Render trip cards
+      container.innerHTML = trips.map(t => {
+        const depart = new Date(t.departure_time);
+        const arrival = new Date(t.arrival_time);
+        const amenities = (t.amenities || []).slice(0,6);
+        const busBadgeClass = t.bus_type_category === 'vip' ? 'vip' : 'regular';
+        const busBadgeText = t.bus_type_category === 'vip' ? 'VIP' : (lang==='en'?'Regular':'Classique');
+        const logo = t.operator_logo ? `<img class="operator-logo" src="${t.operator_logo}" alt="${t.operator_name}">` : `<div class="operator-logo d-flex align-items-center justify-content-center"><i class="fa-solid fa-bus text-primary"></i></div>`;
         
-        function setupNavigationButtons() {
-            // Get current language from URL
-            const pathParts = window.location.pathname.split('/');
-            const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
-            
-            // Setup modify search button
-            document.getElementById('modifySearchBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                window.location.href = `/${currentLang}/`;
-            });
-            
-            // Setup new search button
-            document.getElementById('newSearchBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                window.location.href = `/${currentLang}/`;
-            });
-            
-            // Setup navbar brand link
-            document.querySelector('.navbar-brand').href = `/${currentLang}/`;
-        }
+        // Calculate duration
+        const duration = Math.round((arrival - depart) / (1000 * 60 * 60 * 100)) / 10;
+        const durationText = duration < 1 ? `${Math.round(duration * 60)}min` : `${duration}h`;
         
-        // Get search parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const searchParams = {
-            from: urlParams.get('from'),
-            to: urlParams.get('to'),
-            operator: urlParams.get('operator'),
-            date: urlParams.get('date')
+        // Amenity icons mapping
+        const amenityIcons = {
+          'WiFi': 'fa-wifi',
+          'AC': 'fa-snowflake',
+          'USB': 'fa-usb',
+          'TV': 'fa-tv',
+          'Toilet': 'fa-restroom',
+          'Snacks': 'fa-cookie-bite',
+          'Water': 'fa-tint',
+          'Blanket': 'fa-bed',
+          'Reading Light': 'fa-lightbulb',
+          'Reclining Seats': 'fa-chair'
         };
         
-        // Active filters
-        let activeFilters = new Set(['all']);
-        
-        // Load and display trips
-        async function loadTrips() {
-            try {
-                const response = await fetch(`/api/search-trips?from=${searchParams.from}&to=${searchParams.to}&operator=${searchParams.operator}&date=${searchParams.date}`);
-                const data = await response.json();
-                
-                displayTrips(data.trips);
-                updateSearchSummary(data);
-            } catch (error) {
-                console.error('Error loading trips:', error);
-                showNoResults();
-            }
-        }
-        
-        function displayTrips(trips) {
-            const container = document.getElementById('tripResults');
-            const noResults = document.getElementById('noResults');
-            
-            // Filter out trips departing in less than 30 minutes
-            const now = new Date();
-            const filteredTrips = trips.filter(trip => {
-                const departureTime = new Date(trip.departure_time);
-                const timeDiff = (departureTime - now) / (1000 * 60); // in minutes
-                return timeDiff > 30;
-            });
-            
-            // Apply additional filters
-            const displayedTrips = applyFilters(filteredTrips);
-            
-            if (displayedTrips.length === 0) {
-                container.style.display = 'none';
-                noResults.style.display = 'block';
-                document.getElementById('resultsCount').textContent = '0';
-                return;
-            }
-            
-            container.style.display = 'block';
-            noResults.style.display = 'none';
-            document.getElementById('resultsCount').textContent = displayedTrips.length;
-            
-            container.innerHTML = displayedTrips.map(trip => createTripCard(trip)).join('');
-        }
-        
-        function createTripCard(trip) {
-            const departureTime = new Date(trip.departure_time);
-            const arrivalTime = new Date(trip.arrival_time);
-            const now = new Date();
-            const timeDiff = (departureTime - now) / (1000 * 60); // in minutes
-            
-            const isDepartingSoon = timeDiff <= 60;
-            const isSoldOut = trip.available_seats === 0;
-            const seatPercentage = ((trip.total_seats - trip.available_seats) / trip.total_seats) * 100;
-            
-            const vipAmenities = trip.bus_type_category === 'vip' ? 
-                ['Wi-Fi', 'AC', 'USB', 'Reclining Seats', 'Entertainment'] : 
-                ['Standard Seats', 'AC'];
-            
-            return `
-                <div class="trip-card ${isDepartingSoon ? 'departing-soon' : ''} ${isSoldOut ? 'sold-out' : ''}" 
-                     data-trip-id="${trip.id}"
-                     data-bus-type="${trip.bus_type_category}">
-                    <div class="row">
-                        <!-- Left Section -->
-                        <div class="col-md-9">
-                            <div class="row align-items-center">
-                                <!-- Operator Info -->
-                                <div class="col-md-3">
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        ${trip.operator_logo ? `<img src="${trip.operator_logo}" alt="${trip.operator_name}" class="operator-logo">` : '<div class="operator-logo bg-light d-flex align-items-center justify-content-center"><i class="fas fa-bus text-muted"></i></div>'}
-                                        <div>
-                                            <div class="fw-bold">${trip.operator_name}</div>
-                                            <span class="bus-type-badge ${trip.bus_type_category}">
-                                                ${trip.bus_type_category === 'vip' ? '⭐ ' : ''}${trip.bus_type_name}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Time Info -->
-                                <div class="col-md-5">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <div class="text-center">
-                                            <div class="fw-bold fs-4">${formatTime(departureTime)}</div>
-                                            <small class="text-muted">${trip.from_city}</small>
-                                        </div>
-                                        <div class="flex-grow-1 mx-3">
-                                            <div class="d-flex align-items-center">
-                                                <div class="flex-grow-1 border-bottom border-2 border-secondary" style="height: 2px;"></div>
-                                                <i class="fas fa-bus mx-2 text-secondary"></i>
-                                                <div class="flex-grow-1 border-bottom border-2 border-secondary" style="height: 2px;"></div>
-                                            </div>
-                                            <div class="text-center mt-1">
-                                                <small class="text-muted">
-                                                    <i class="fas fa-clock me-1"></i>
-                                                    ${calculateDuration(departureTime, arrivalTime)}
-                                                </small>
-                                            </div>
-                                        </div>
-                                        <div class="text-center">
-                                            <div class="fw-bold fs-4">${formatTime(arrivalTime)}</div>
-                                            <small class="text-muted">${trip.to_city}</small>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Amenities for VIP -->
-                                    ${trip.bus_type_category === 'vip' ? `
-                                        <div class="mt-2">
-                                            <small class="text-muted">Commodités:</small>
-                                            <div class="d-flex gap-2 flex-wrap mt-1">
-                                                ${vipAmenities.map(amenity => `
-                                                    <span class="badge bg-light text-dark border">
-                                                        <i class="fas fa-check-circle text-success me-1"></i>${amenity}
-                                                    </span>
-                                                `).join('')}
-                                            </div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                                
-                                <!-- Seats Info -->
-                                <div class="col-md-4">
-                                    <div class="seats-indicator">
-                                        <div>
-                                            <div class="fw-bold">
-                                                <i class="fas fa-chair me-1"></i>
-                                                ${trip.available_seats} / ${trip.total_seats}
-                                            </div>
-                                            <small class="text-muted" data-i18n="trips.seats_available">sièges disponibles</small>
-                                        </div>
-                                        <div class="seats-bar mt-2">
-                                            <div class="seats-bar-fill" style="width: ${seatPercentage}%"></div>
-                                        </div>
-                                    </div>
-                                    ${isDepartingSoon ? '<div class="mt-2"><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Départ imminent</small></div>' : ''}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Right Section - Price and Action -->
-                        <div class="col-md-3 border-start">
-                            <div class="text-center h-100 d-flex flex-column justify-content-center">
-                                <div class="mb-3">
-                                    <small class="text-muted">Prix par siège</small>
-                                    <div class="price-display">${formatPrice(trip.seat_price)}</div>
-                                    <small class="text-muted">FCFA</small>
-                                </div>
-                                ${isSoldOut ? 
-                                    '<button class="btn btn-secondary w-100" disabled><i class="fas fa-times-circle me-2"></i>Complet</button>' :
-                                    `<button class="select-seats-btn w-100" onclick="selectSeats(${trip.id})" ${isDepartingSoon ? 'disabled' : ''}>
-                                        <i class="fas fa-check-circle me-2"></i>
-                                        <span data-i18n="trips.select_seats">Choisir sièges</span>
-                                    </button>`
-                                }
-                            </div>
-                        </div>
-                    </div>
+        const amenitiesHtml = amenities.length > 0 ? `
+          <div class="amenities-compact">
+            ${amenities.map(a => `
+              <div class="amenity-icon" title="${a}">
+                <i class="fa-solid ${amenityIcons[a] || 'fa-check'}"></i>
+              </div>
+            `).join('')}
+          </div>` : '';
+
+        // Stops/waypoints display (if available)
+        const stopsHtml = t.stops && t.stops.length > 0 ? `
+          <div class="stops-section">
+            <div class="stops-label">${lang==='en'?'Stops':'Arrêts'}</div>
+            <div class="stops-list">
+              ${t.stops.map(stop => `<span class="stop-item">${stop}</span>`).join('')}
+            </div>
+          </div>` : '';
+
+        return `
+        <div class="mb-3">
+          <div class="card result-card">
+            <!-- Trip Header -->
+            <div class="trip-header">
+              <div class="operator-info">
+                ${logo}
+                <h6 class="operator-name">${t.operator_name}</h6>
+              </div>
+            </div>
+
+            <!-- Route Timeline -->
+            <div class="route-timeline">
+              <div class="route-point">
+                <div class="route-point-indicator"></div>
+                <div class="route-label">${lang==='en'?'Start':'Départ'}</div>
+                <div class="route-time">${depart.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12: false})}</div>
+                <div class="route-city">${t.from_city}</div>
+              </div>
+              <div class="route-connector">
+                <div class="route-info-badge">
+                  <span class="route-from">${t.from_city}</span>
+                  <i class="fa-solid fa-arrow-right mx-1"></i>
+                  <span class="route-to">${t.to_city}</span>
                 </div>
-            `;
-        }
-        
-        function applyFilters(trips) {
-            if (activeFilters.has('all')) {
-                return trips;
-            }
-            
-            return trips.filter(trip => {
-                const departureTime = new Date(trip.departure_time);
-                const hour = departureTime.getHours();
-                
-                // Bus type filters
-                if (activeFilters.has('vip') && trip.bus_type_category !== 'vip') return false;
-                if (activeFilters.has('regular') && trip.bus_type_category !== 'regular') return false;
-                
-                // Time filters
-                if (activeFilters.has('morning') && (hour < 6 || hour >= 12)) return false;
-                if (activeFilters.has('afternoon') && (hour < 12 || hour >= 18)) return false;
-                if (activeFilters.has('evening') && (hour < 18 || hour >= 6)) return false;
-                
-                return true;
-            });
-        }
-        
-        function updateSearchSummary(data) {
-            document.getElementById('routeDisplay').textContent = `${searchParams.from} → ${searchParams.to}`;
-            document.getElementById('dateDisplay').textContent = formatDate(searchParams.date);
-            document.getElementById('operatorDisplay').textContent = data.operator_name || 'Tous les opérateurs';
-        }
-        
-        function showNoResults() {
-            document.getElementById('tripResults').style.display = 'none';
-            document.getElementById('noResults').style.display = 'block';
-            document.getElementById('resultsCount').textContent = '0';
-        }
-        
-        // Utility functions
-        function formatTime(date) {
-            return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        }
-        
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        }
-        
-        function formatPrice(price) {
-            return new Intl.NumberFormat('fr-FR').format(price);
-        }
-        
-        function calculateDuration(start, end) {
-            const diff = end - start;
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            return `${hours}h ${minutes}min`;
-        }
-        
-        function selectSeats(tripId) {
-            // Get current language from URL
-            const pathParts = window.location.pathname.split('/');
-            const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
-            
-            // Store trip selection in session
-            sessionStorage.setItem('selectedTripId', tripId);
-            window.location.href = `/${currentLang}/booking/seats?trip=${tripId}`;
-        }
-        
-        // Filter event handlers
-        document.querySelectorAll('.filter-chip').forEach(chip => {
-            chip.addEventListener('click', function() {
-                const filter = this.dataset.filter;
-                
-                if (filter === 'all') {
-                    activeFilters.clear();
-                    activeFilters.add('all');
-                    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-                } else {
-                    activeFilters.delete('all');
-                    document.querySelector('[data-filter="all"]').classList.remove('active');
-                    
-                    if (activeFilters.has(filter)) {
-                        activeFilters.delete(filter);
-                        this.classList.remove('active');
-                    } else {
-                        activeFilters.add(filter);
-                        this.classList.add('active');
-                    }
-                    
-                    if (activeFilters.size === 0) {
-                        activeFilters.add('all');
-                        document.querySelector('[data-filter="all"]').classList.add('active');
-                    }
-                }
-                
-                loadTrips();
-            });
+              </div>
+              <div class="route-point">
+                <div class="route-point-indicator"></div>
+                <div class="route-label">${lang==='en'?'Finish':'Arrivée'}</div>
+                <div class="route-time">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12: false})}</div>
+                <div class="route-city">${t.to_city}</div>
+              </div>
+            </div>
+
+            <!-- Trip Details -->
+            <div class="trip-details">
+              ${stopsHtml}
+
+              <!-- Trip Features -->
+              <div class="trip-features">
+                <div class="bus-info-card">
+                  <span class="bus-badge ${busBadgeClass}">${busBadgeText}</span>
+                  <span class="bus-type">${t.bus_type_name}</span>
+                </div>
+                <div class="amenities-grid">
+                  ${amenities.map(a => `
+                    <div class="amenity-icon" title="${a}">
+                      <i class="fa-solid ${amenityIcons[a] || 'fa-check'}"></i>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+
+            <!-- Booking Footer -->
+            <div class="booking-footer">
+              <div class="seats-info">
+                <i class="fa-solid fa-chair me-1"></i>
+                <span class="seats-count">${t.available_seats}</span>
+                <span class="seats-label">${lang==='en'?'seats left':'places restantes'}</span>
+              </div>
+              <div class="booking-action">
+                <div class="price-info">
+                  <div class="price-amount">${(t.seat_price||0).toLocaleString()} XAF</div>
+                  <div class="price-label">${lang==='en'?'per seat':'par place'}</div>
+                </div>
+                <a class="book-btn" href="/${lang}/booking/seats?trip=${t.id}">
+                  <i class="fa-solid fa-ticket me-1"></i>
+                  ${lang==='en'?'Select Seats':'Choisir places'}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      // Add fade-in animation to cards
+      setTimeout(() => {
+        document.querySelectorAll('.result-card').forEach((card, index) => {
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(20px)';
+          setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, index * 100);
         });
-        
-        // Initialize language manager fallback
-        if (typeof langManager === 'undefined') {
-            window.langManager = {
-                translate: function(key) {
-                    const translations = {
-                        'search.select_operator': 'Veuillez sélectionner un opérateur',
-                        'trips.title': 'voyages disponibles',
-                        'trips.no_results': 'Aucun voyage trouvé',
-                        'trips.seats_available': 'sièges disponibles',
-                        'trips.select_seats': 'Choisir sièges'
-                    };
-                    return translations[key] || key;
-                }
-            };
-        }
-        
-        // Initialize
-        loadTrips();
-    </script>
-</body>
-</html>
+      }, 50);
+
+    } catch (error) {
+      loadingState.style.display = 'none';
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fa-solid fa-exclamation-triangle"></i>
+          <h4>${lang==='en'?'Connection Error':'Erreur de connexion'}</h4>
+          <p>${lang==='en'?'Unable to load search results. Please try again.':'Impossible de charger les résultats. Veuillez réessayer.'}</p>
+          <button class="btn btn-primary mt-3" onclick="searchTrips()">
+            <i class="fa-solid fa-refresh me-2"></i>
+            ${lang==='en'?'Retry':'Réessayer'}
+          </button>
+        </div>`;
+    }
+  }
+
+  // Start search when page loads
+  searchTrips();
+</script>
+{% endblock %}

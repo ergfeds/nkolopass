@@ -1,1049 +1,158 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paiement - Nkolo Pass</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary: #2563eb;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-        }
-        
-        body { 
-            background: #f8fafc; 
-            font-family: 'Segoe UI', sans-serif; 
-        }
-        
-        .payment-container { 
-            max-width: 500px; 
-            margin: 1rem auto; 
-            padding: 0 1rem; 
-        }
-        
-        .compact-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 1rem;
-        }
-        
-        .card-header {
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            color: white;
-            padding: 1rem;
-            border-radius: 12px 12px 0 0;
-            text-align: center;
-            position: relative;
-        }
-        
-        .lang-switch {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background: rgba(255,255,255,0.2);
-            border-radius: 20px;
-            padding: 0.25rem;
-        }
-        
-        .lang-btn {
-            padding: 0.25rem 0.75rem;
-            border: none;
-            background: transparent;
-            color: white;
-            border-radius: 16px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        
-        .lang-btn.active { background: white; color: var(--primary); }
-        
-        .trip-summary {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin: 1rem;
-        }
-        
-        .amount-badge {
-            background: var(--warning);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-        
-        .service-dropdown-group {
-            margin-bottom: 1rem;
-        }
-        
-        .service-dropdown {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            background: white;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .service-dropdown:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-        
-        .service-dropdown option {
-            padding: 0.5rem;
-            font-size: 1rem;
-        }
-        
-        .phone-group { position: relative; margin-bottom: 1rem; }
-        
-        .phone-input {
-            width: 100%;
-            padding: 0.75rem 0.75rem 0.75rem 3.5rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-        
-        .phone-input:focus { outline: none; border-color: var(--primary); }
-        
-        .phone-prefix {
-            position: absolute;
-            left: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-weight: 600;
-            color: #64748b;
-        }
-        
-        .pay-btn {
-            width: 100%;
-            padding: 0.875rem;
-            background: linear-gradient(135deg, var(--success), #059669);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .pay-btn:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
-        
-        .pay-btn:disabled { background: #94a3b8; cursor: not-allowed; }
-        
-        .instructions {
-            background: #fef3c7;
-            border: 1px solid #fbbf24;
-            border-radius: 12px;
-            padding: 1.25rem;
-            margin: 1.5rem 0;
-            font-size: 0.95rem;
-            text-align: left;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-        
-        .instructions h6 {
-            margin-bottom: 0.75rem;
-            color: #92400e;
-            font-weight: 600;
-        }
-        
-        .instructions ol { 
-            margin: 0; 
-            padding-left: 1.5rem; 
-            line-height: 1.5;
-        }
-        
-        .instructions li { 
-            margin-bottom: 0.5rem; 
-            color: #78350f;
-        }
-        
-        .instructions p {
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #92400e;
-        }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .payment-header {
-            background: linear-gradient(135deg, var(--mesomb-primary) 0%, #3b82f6 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-        
-        .mesomb-logo {
-            width: 80px;
-            height: 80px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 2rem;
-            color: var(--mesomb-primary);
-        }
-        
-        .payment-body {
-            padding: 2rem;
-        }
-        
-        .service-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        
-        .service-option {
-            border: 2px solid #e5e7eb;
-            border-radius: 15px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .service-option:hover {
-            border-color: var(--mesomb-primary);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(30, 64, 175, 0.2);
-        }
-        
-        .service-option.selected {
-            border-color: var(--mesomb-primary);
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-        }
-        
-        .service-option::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-        
-        .service-option:hover::before {
-            left: 100%;
-        }
-        
-        .service-logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 1rem;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-        }
-        
-        .mtn-logo { background: #ffcc00; color: #000; }
-        .orange-logo { background: #ff6600; color: white; }
-        .airtel-logo { background: #e60000; color: white; }
-        
-        .phone-input-group {
-            position: relative;
-            margin-bottom: 2rem;
-        }
-        
-        .phone-input {
-            width: 100%;
-            padding: 1rem 1rem 1rem 4rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 15px;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .phone-input:focus {
-            outline: none;
-            border-color: var(--mesomb-primary);
-            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
-        }
-        
-        .phone-prefix {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-weight: 600;
-            color: #6b7280;
-        }
-        
-        .pay-button {
-            width: 100%;
-            padding: 1.2rem;
-            background: linear-gradient(135deg, var(--mesomb-success) 0%, #059669 100%);
-            color: white;
-            border: none;
-            border-radius: 15px;
-            font-size: 1.2rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .pay-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
-        }
-        
-        .pay-button:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        /* New Payment Popup Styles */
-        .payment-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            backdrop-filter: blur(5px);
-        }
-        
-        .payment-popup {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            padding: 0;
-            max-width: 420px;
-            width: 90%;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-            animation: popupSlide 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            overflow: hidden;
-        }
-        
-        @keyframes popupSlide {
-            from { 
-                opacity: 0; 
-                transform: translateY(-50px) scale(0.9); 
-            }
-            to { 
-                opacity: 1; 
-                transform: translateY(0) scale(1); 
-            }
-        }
-        
-        .popup-header {
-            background: rgba(255,255,255,0.1);
-            padding: 1.5rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .popup-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin: 0 auto 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-        
-        .popup-icon.processing {
-            animation: pulse 2s infinite;
-        }
-        
-        .popup-icon.success {
-            background: #10b981;
-        }
-        
-        .popup-icon.error {
-            background: #ef4444;
-        }
-        
-        .popup-icon.pending {
-            background: #f59e0b;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-        
-        .popup-title {
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin: 0;
-        }
-        
-        .popup-message {
-            color: rgba(255,255,255,0.9);
-            margin: 0.5rem 0 0 0;
-            font-size: 0.95rem;
-        }
-        
-        .popup-body {
-            background: white;
-            padding: 1.5rem;
-        }
-        
-        .popup-instructions {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .popup-instructions h6 {
-            color: #92400e;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-        }
-        
-        .popup-instructions ol {
-            margin: 0;
-            padding-left: 1.2rem;
-            color: #78350f;
-        }
-        
-        .popup-instructions li {
-            margin-bottom: 0.4rem;
-            line-height: 1.4;
-        }
-        
-        .popup-actions {
-            display: flex;
-            gap: 0.75rem;
-            justify-content: center;
-            margin-top: 1rem;
-        }
-        
-        .popup-btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-        }
-        
-        .popup-btn-primary {
-            background: #667eea;
-            color: white;
-        }
-        
-        .popup-btn-primary:hover {
-            background: #5a67d8;
-            transform: translateY(-1px);
-        }
-        
-        .popup-btn-secondary {
-            background: #e5e7eb;
-            color: #374151;
-        }
-        
-        .popup-btn-secondary:hover {
-            background: #d1d5db;
-        }
-        
-        .trip-summary {
-            background: #f8fafc;
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .amount-display {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-radius: 15px;
-            padding: 1.5rem;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .spinner {
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
-    <div class="payment-container">
-        <!-- Header -->
-        <div class="compact-card">
-            <div class="card-header">
-                <div class="lang-switch">
-                    <button class="lang-btn active" data-lang-switch="fr">FR</button>
-                    <button class="lang-btn" data-lang-switch="en">EN</button>
-                </div>
-                <h4 class="mb-1">
-                    <i class="fas fa-mobile-alt me-2"></i>
-                    <span id="title">Paiement Mobile Money</span>
-                </h4>
-                <small class="opacity-75" id="subtitle">Sécurisé par MeSomb</small>
-            </div>
-            
-            <!-- Trip Summary -->
-            <div class="trip-summary">
-                <div>
-                    <strong>{{ trip.route.origin }} → {{ trip.route.destination }}</strong><br>
-                    <small class="text-muted">
-                        <i class="fas fa-calendar me-1"></i>{{ trip.departure_time.strftime('%d/%m à %H:%M') }} - 
-                        <i class="fas fa-user me-1"></i>{{ passenger_details.name }} - 
-                        <i class="fas fa-chair me-1"></i>{{ selected_seats|length }} siège(s)
-                    </small>
-                </div>
-                <div class="amount-badge">{{ "{:,.0f}".format(total_amount) }} FCFA</div>
-            </div>
-        </div>
-                
-        <!-- Payment Form -->
-        <div class="compact-card">
-            <div class="p-3">
-                <form id="paymentForm" method="POST">
-                    <!-- Service Selection -->
-                    <h6 class="mb-2" id="chooseOperator">Choisissez votre opérateur</h6>
-                    <div class="service-dropdown-group">
-                        <select class="service-dropdown" id="payment_service" name="payment_service" required>
-                            <option value="MTN" selected>
-                                📱 MTN Mobile Money (MoMo)
-                            </option>
-                            <option value="ORANGE">
-                                📱 Orange Money
-                            </option>
-                            <option value="AIRTEL">
-                                📱 Airtel Money
-                            </option>
-                        </select>
-                    </div>
-                    
-                    <!-- Phone Input -->
-                    <h6 class="mb-2" id="phoneNumber">Numéro de téléphone</h6>
-                    <div class="phone-group">
-                        <span class="phone-prefix">+237</span>
-                        <input type="tel" class="phone-input" id="payment_phone" name="payment_phone" 
-                               placeholder="6XXXXXXXX" pattern="6[0-9]{8}" maxlength="9" required>
-                    </div>
-                    
-                    <!-- Pay Button -->
-                    <button type="submit" class="pay-btn" id="payButton">
-                        <i class="fas fa-lock me-2"></i>
-                        <span id="payText">Payer</span> {{ "{:,.0f}".format(total_amount) }} FCFA
-                    </button>
-                    
-                    <!-- Security Info -->
-                    <div class="text-center mt-2">
-                        <small class="text-muted">
-                            <i class="fas fa-shield-alt me-1"></i>
-                            <span id="secureText">Paiement 100% sécurisé</span>
-                        </small>
-                    </div>
-                </form>
-            </div>
-        </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- New Payment Popup -->
-    <div class="payment-overlay" id="paymentOverlay">
-        <div class="payment-popup">
-            <div class="popup-header">
-                <div class="popup-icon" id="popupIcon">
-                    <i class="fas fa-spinner fa-spin"></i>
-                </div>
-                <h4 class="popup-title" id="popupTitle">Traitement en cours...</h4>
-                <p class="popup-message" id="popupMessage">Initialisation du paiement...</p>
-            </div>
-            
-            <div class="popup-body">
-                <!-- Instructions will be shown here -->
-                <div id="popupInstructions" class="popup-instructions" style="display: none;">
-                    <h6 id="instructionsTitle">Comment approuver votre paiement :</h6>
-                    
-                    <div id="mtnInstructions" style="display: none;">
-                        <p><strong>📱 MTN Mobile Money :</strong></p>
-                        <ol>
-                            <li>Vous recevrez un SMS de MTN</li>
-                            <li>Composez <strong>*126#</strong> sur votre téléphone</li>
-                            <li>Sélectionnez "Approuver transaction"</li>
-                            <li>Entrez votre code PIN MoMo</li>
-                            <li>Confirmez le paiement</li>
-                        </ol>
-                    </div>
-                    
-                    <div id="orangeInstructions" style="display: none;">
-                        <p><strong>📱 Orange Money :</strong></p>
-                        <ol>
-                            <li>Vous recevrez un SMS d'Orange</li>
-                            <li>Composez <strong>#150#</strong> sur votre téléphone</li>
-                            <li>Sélectionnez "Mes transactions"</li>
-                            <li>Approuvez la transaction en attente</li>
-                            <li>Entrez votre code PIN Orange Money</li>
-                        </ol>
-                    </div>
-                    
-                    <div id="airtelInstructions" style="display: none;">
-                        <p><strong>📱 Airtel Money :</strong></p>
-                        <ol>
-                            <li>Vous recevrez un SMS d'Airtel</li>
-                            <li>Composez <strong>*140#</strong> sur votre téléphone</li>
-                            <li>Sélectionnez "Approuver paiement"</li>
-                            <li>Entrez votre code PIN Airtel Money</li>
-                            <li>Confirmez la transaction</li>
-                        </ol>
-                    </div>
-                </div>
-                
-                <!-- Action buttons -->
-                <div class="popup-actions" id="popupActions" style="display: none;">
-                    <button class="popup-btn popup-btn-secondary" id="retryButton" style="display: none;">
-                        <i class="fas fa-redo me-1"></i> Réessayer
-                    </button>
-                    <button class="popup-btn popup-btn-primary" id="continueButton" style="display: none;">
-                        <i class="fas fa-check me-1"></i> Continuer
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // URL-based language switching helpers
-        function getCurrentLangFromURL() {
-            const parts = window.location.pathname.split('/');
-            return (parts[1] === 'en' || parts[1] === 'fr') ? parts[1] : 'fr';
-        }
-        function buildLangUrl(lang, keepPath=true) {
-            const parts = window.location.pathname.split('/');
-            // Remove existing lang prefix if present
-            if (parts[1] === 'en' || parts[1] === 'fr') {
-                parts.splice(1, 1);
-            }
-            const base = keepPath ? parts.join('/') : '/';
-            return `/${lang}${base}${window.location.search}`;
-        }
-        function withLangPrefix(path) {
-            const lang = getCurrentLangFromURL();
-            if (path.startsWith('/en/') || path.startsWith('/fr/')) return path; // already prefixed
-            if (path.startsWith('/')) return `/${lang}${path}`;
-            return `/${lang}/${path}`;
-        }
+{% extends 'base.html' %}
+{% block title %}{{ 'Payment' if current_language=='en' else 'Paiement' }} — {{ site_name }}{% endblock %}
 
-        // Initialize navbar/card language buttons to use URL-based switching
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentLang = getCurrentLangFromURL();
-            // Mark active button
-            document.querySelectorAll('.lang-switch .lang-btn').forEach(btn => {
-                const btnLang = btn.getAttribute('data-lang-switch');
-                if (btnLang) {
-                    if (btnLang === currentLang) btn.classList.add('active');
-                    else btn.classList.remove('active');
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        // Redirect preserving current path and query
-                        window.location.href = buildLangUrl(btnLang, true);
-                    });
-                }
-            });
-        });
+{% block extra_css %}
+<style>
+  .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index: 1050; }
+  .loading-card { background:#fff; padding:16px 20px; border-radius: 10px; box-shadow: 0 10px 30px rgba(16,24,40,.25); min-width: 300px; }
+  .spinner { width:24px; height:24px; border:3px solid #e2e8f0; border-top-color:#0d6efd; border-radius:50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-line { font-size: .95rem; }
+  .dim { opacity:.6 }
+  .hidden { display:none; }
+  .success { color: #0f5132 }
+  .pending { color: #664d03 }
+  .error { color: #842029 }
+  .code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; }
+</style>
+{% endblock %}
 
-        // Translations
-        const translations = {
-            fr: {
-                title: 'Paiement Mobile Money',
-                subtitle: 'Sécurisé par MeSomb',
-                chooseOperator: 'Choisissez votre opérateur',
-                phoneNumber: 'Numéro de téléphone',
-                payText: 'Payer',
-                secureText: 'Paiement 100% sécurisé',
-                instructionsTitle: 'Comment approuver votre paiement :',
-                mtn1: 'Vous recevrez un SMS de MTN',
-                mtn2: 'Composez *126# sur votre téléphone',
-                mtn3: 'Sélectionnez "Approuver transaction"',
-                mtn4: 'Entrez votre code PIN MoMo',
-                mtn5: 'Confirmez le paiement',
-                orange1: 'Vous recevrez un SMS d\'Orange',
-                orange2: 'Composez #150# sur votre téléphone',
-                orange3: 'Sélectionnez "Mes transactions"',
-                orange4: 'Approuvez la transaction en attente',
-                orange5: 'Entrez votre code PIN Orange Money',
-                airtel1: 'Vous recevrez un SMS d\'Airtel',
-                airtel2: 'Composez *140# sur votre téléphone',
-                airtel3: 'Sélectionnez "Approuver paiement"',
-                airtel4: 'Entrez votre code PIN Airtel Money',
-                airtel5: 'Confirmez la transaction',
-                retryText: 'Réessayer',
-                continueText: 'Continuer'
-            },
-            en: {
-                title: 'Mobile Money Payment',
-                subtitle: 'Secured by MeSomb',
-                chooseOperator: 'Choose your operator',
-                phoneNumber: 'Phone number',
-                payText: 'Pay',
-                secureText: '100% secure payment',
-                instructionsTitle: 'How to approve your payment:',
-                mtn1: 'You will receive an SMS from MTN',
-                mtn2: 'Dial *126# on your phone',
-                mtn3: 'Select "Approve transaction"',
-                mtn4: 'Enter your MoMo PIN code',
-                mtn5: 'Confirm the payment',
-                orange1: 'You will receive an SMS from Orange',
-                orange2: 'Dial #150# on your phone',
-                orange3: 'Select "My transactions"',
-                orange4: 'Approve the pending transaction',
-                orange5: 'Enter your Orange Money PIN code',
-                airtel1: 'You will receive an SMS from Airtel',
-                airtel2: 'Dial *140# on your phone',
-                airtel3: 'Select "Approve payment"',
-                airtel4: 'Enter your Airtel Money PIN code',
-                airtel5: 'Confirm the transaction',
-                retryText: 'Retry',
-                continueText: 'Continue'
-            }
-        };
-        
-        let currentLang = 'fr';
-        
-        function setLanguage(lang) {
-            currentLang = lang;
-            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[onclick="setLanguage('${lang}')"]`).classList.add('active');
-            
-            // Update all translatable elements
-            Object.keys(translations[lang]).forEach(key => {
-                const element = document.getElementById(key);
-                if (element) {
-                    element.textContent = translations[lang][key];
-                }
-            });
-        }
-        
-        // Service selection dropdown
-        document.getElementById('payment_service').addEventListener('change', function() {
-            const service = this.value;
-            const phoneInput = document.getElementById('payment_phone');
-            phoneInput.placeholder = `6XXXXXXXX (${service})`;
-        });
-        
-        // Auto-fill phone number
-        document.addEventListener('DOMContentLoaded', function() {
-            const phoneInput = document.getElementById('payment_phone');
-            const passengerPhone = '{{ passenger_details.phone if passenger_details else "" }}';
-            
-            if (passengerPhone && phoneInput) {
-                let cleanPhone = passengerPhone.replace(/^\+?237/, '');
-                if (cleanPhone.length === 9 && cleanPhone.startsWith('6')) {
-                    phoneInput.value = cleanPhone;
-                }
-            }
-        });
-        
-        // Payment form submission
-        document.getElementById('paymentForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const phoneNumber = document.getElementById('payment_phone').value;
-            const paymentService = document.getElementById('payment_service').value;
-            
-            // Validate phone number
-            if (!phoneNumber || !phoneNumber.match(/^6[0-9]{8}$/)) {
-                showPaymentPopup('error', 'Numéro invalide', 'Veuillez entrer un numéro de téléphone valide (format: 6XXXXXXXX)');
-                return;
-            }
-            
-            // Show processing status with service-specific instructions
-            showPaymentPopup('processing', 'Traitement en cours...', 
-                `Envoi de la demande de paiement vers ${phoneNumber} via ${paymentService}...`, paymentService);
-            
-            // Disable form
-            document.getElementById('payButton').disabled = true;
-            
-            // Submit form via AJAX for better control
-            const formData = new FormData(this);
-            
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => {
-                if (response.headers.get('content-type')?.includes('application/json')) {
-                    return response.json();
-                } else {
-                    return response.text();
-                }
-            })
-            .then(data => {
-                if (typeof data === 'object') {
-                    // JSON response
-                    handlePaymentResponse(data);
-                } else {
-                    // HTML response - parse for redirects
-                    if (data.includes('booking_confirmation')) {
-                        showPaymentPopup('success', 'Paiement réussi!', 
-                            'Votre paiement a été traité avec succès. Redirection en cours...');
-                        setTimeout(() => window.location.href = withLangPrefix('/booking/confirmation'), 2000);
-                    } else if (data.includes('error') || data.includes('failed')) {
-                        showPaymentPopup('error', 'Paiement échoué', 
-                            'Le paiement n\'a pas pu être traité. Veuillez réessayer.');
-                    } else {
-                        showPaymentPopup('pending', 'Paiement en attente', 
-                            'Veuillez vérifier votre téléphone et approuver la demande de paiement.');
-                        startStatusPolling();
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Payment error:', error);
-                showPaymentPopup('error', 'Erreur de connexion', 
-                    'Une erreur s\'est produite. Veuillez vérifier votre connexion et réessayer.');
-            });
-        });
-        
-        function handlePaymentResponse(data) {
-            switch(data.status) {
-                case 'success':
-                    showPaymentPopup('success', 'Paiement réussi!', data.message);
-                    setTimeout(() => {
-                        const fallback = withLangPrefix('/booking/confirmation');
-                        const target = data.redirect_url ? withLangPrefix(data.redirect_url) : fallback;
-                        window.location.href = target;
-                    }, 2000);
-                    break;
-                    
-                case 'error':
-                    showPaymentPopup('error', 'Paiement échoué', data.message);
-                    break;
-                    
-                case 'pending':
-                    showPaymentPopup('pending', 'Paiement en attente', data.message);
-                    startStatusPolling(data.booking_id);
-                    break;
-                    
-                default:
-                    showPaymentPopup('error', 'Erreur inconnue', 'Une erreur inattendue s\'est produite.');
-            }
-        }
-        
-        function startStatusPolling(bookingId) {
-            if (!bookingId) return;
-            
-            const pollInterval = setInterval(() => {
-                fetch(`/api/payment-status/${bookingId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const mesombStatus = data.mesomb_status;
-                        const isFinal = data.is_final;
-                        
-                        switch(mesombStatus) {
-                            case 'SUCCESS':
-                                // FINAL STATUS: Payment completed successfully
-                                clearInterval(pollInterval);
-                                showPaymentPopup('success', 'Paiement confirmé!', data.status_message);
-                                setTimeout(() => {
-                                    window.location.href = '/booking/confirmation';
-                                }, 2000);
-                                break;
-                                
-                            case 'FAILED':
-                                // FINAL STATUS: Payment definitively failed
-                                clearInterval(pollInterval);
-                                showPaymentPopup('error', 'Paiement échoué', data.status_message);
-                                break;
-                                
-                            case 'CANCELED':
-                                // INTERMEDIATE STATUS: Payment was canceled
-                                clearInterval(pollInterval);
-                                showPaymentPopup('error', 'Paiement annulé', data.status_message);
-                                break;
-                                
-                            case 'ERRORED':
-                                // INTERMEDIATE STATUS: Payment encountered error
-                                clearInterval(pollInterval);
-                                showPaymentPopup('error', 'Erreur de paiement', data.status_message);
-                                break;
-                                
-                            case 'PENDING':
-                                // INTERMEDIATE STATUS: Still processing - keep polling
-                                document.getElementById('statusMessage').textContent = data.status_message;
-                                // Continue polling since it's not final
-                                break;
-                                
-                            case 'UNKNOWN':
-                                // Unknown status - stop polling and show warning
-                                clearInterval(pollInterval);
-                                showPaymentPopup('pending', 'Statut inconnu', data.status_message);
-                                break;
-                                
-                            default:
-                                // Unexpected status
-                                clearInterval(pollInterval);
-                                showPaymentPopup('error', 'Statut inattendu', `Statut MeSomb non reconnu: ${mesombStatus}`);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Status polling error:', error);
-                        clearInterval(pollInterval);
-                    });
-            }, 3000); // Poll every 3 seconds
-            
-            // Stop polling after 5 minutes
-            setTimeout(() => {
-                clearInterval(pollInterval);
-                showPaymentPopup('pending', 'Vérification du statut', 
-                    'Le paiement prend plus de temps que prévu. Veuillez vérifier votre téléphone ou réessayer.');
-            }, 300000);
-        }
-        
-        function showPaymentPopup(type, title, message, service = null) {
-            const overlay = document.getElementById('paymentOverlay');
-            const icon = document.getElementById('popupIcon');
-            const titleEl = document.getElementById('popupTitle');
-            const messageEl = document.getElementById('popupMessage');
-            const actions = document.getElementById('popupActions');
-            const retryBtn = document.getElementById('retryButton');
-            const continueBtn = document.getElementById('continueButton');
-            const instructions = document.getElementById('popupInstructions');
-            
-            // Reset all states
-            icon.className = 'popup-icon';
-            actions.style.display = 'none';
-            retryBtn.style.display = 'none';
-            continueBtn.style.display = 'none';
-            instructions.style.display = 'none';
-            
-            // Hide all instruction sets
-            document.getElementById('mtnInstructions').style.display = 'none';
-            document.getElementById('orangeInstructions').style.display = 'none';
-            document.getElementById('airtelInstructions').style.display = 'none';
-            
-            // Set content
-            titleEl.textContent = title;
-            messageEl.textContent = message;
-            
-            // Configure popup based on type
-            switch(type) {
-                case 'processing':
-                    icon.classList.add('processing');
-                    icon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    
-                    // Show service-specific instructions
-                    if (service) {
-                        instructions.style.display = 'block';
-                        const serviceInstructions = document.getElementById(`${service.toLowerCase()}Instructions`);
-                        if (serviceInstructions) {
-                            serviceInstructions.style.display = 'block';
-                        }
-                    }
-                    break;
-                    
-                case 'success':
-                    icon.classList.add('success');
-                    icon.innerHTML = '<i class="fas fa-check"></i>';
-                    actions.style.display = 'flex';
-                    continueBtn.style.display = 'block';
-                    break;
-                    
-                case 'error':
-                    icon.classList.add('error');
-                    icon.innerHTML = '<i class="fas fa-times"></i>';
-                    actions.style.display = 'flex';
-                    retryBtn.style.display = 'block';
-                    document.getElementById('payButton').disabled = false;
-                    break;
-                    
-                case 'pending':
-                    icon.classList.add('pending');
-                    icon.innerHTML = '<i class="fas fa-clock"></i>';
-                    actions.style.display = 'flex';
-                    retryBtn.style.display = 'block';
-                    continueBtn.style.display = 'block';
-                    
-                    // Show service-specific instructions
-                    if (service) {
-                        instructions.style.display = 'block';
-                        const serviceInstructions = document.getElementById(`${service.toLowerCase()}Instructions`);
-                        if (serviceInstructions) {
-                            serviceInstructions.style.display = 'block';
-                        }
-                    }
-                    break;
-            }
-            
-            // Show the popup
-            overlay.style.display = 'flex';
-        }
-        
-        function hidePaymentPopup() {
-            document.getElementById('paymentOverlay').style.display = 'none';
-        }
-        
-        // Retry button
-        document.getElementById('retryButton').addEventListener('click', function() {
-            hidePaymentPopup();
-            document.getElementById('payButton').disabled = false;
-        });
-        
-        // Continue button
-        document.getElementById('continueButton').addEventListener('click', function() {
-            window.location.href = withLangPrefix('/booking/confirmation');
-        });
-        
-        // Close popup on outside click
-        document.getElementById('paymentOverlay').addEventListener('click', function(e) {
-            if (e.target === this) {
-                hidePaymentPopup();
-                document.getElementById('payButton').disabled = false;
-            }
-        });
-    </script>
-</body>
-</html>
+{% block content %}
+<div class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card p-3 p-md-4">
+        <h4 class="mb-3">
+          <i class="fa-solid fa-shield-halved text-primary me-2"></i>
+          {{ 'Secure payment' if current_language=='en' else 'Paiement sécurisé' }}
+        </h4>
+
+        <form method="post" id="paymentForm">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{{ 'Payment service' if current_language=='en' else 'Service de paiement' }}</label>
+              <select class="form-select" name="payment_service">
+                <option value="MTN">MTN Mobile Money</option>
+                <option value="ORANGE">Orange Money</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{{ 'Mobile number' if current_language=='en' else 'Numéro mobile' }}</label>
+              <input type="tel" class="form-control" name="payment_phone" placeholder="6XXXXXXXX" value="{{ passenger_details.phone }}" required>
+              <div class="form-text">{{ 'You will receive a prompt to approve the payment.' if current_language=='en' else 'Vous recevrez une demande pour approuver le paiement.' }}</div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="d-flex align-items-center justify-content-between">
+            <a href="/{{ current_language }}/booking/seats?trip={{ trip.id }}" class="btn btn-outline-secondary">
+              ← {{ 'Back' if current_language=='en' else 'Retour' }}
+            </a>
+            <button type="submit" class="btn btn-primary" id="payBtn">
+              {{ 'Pay now' if current_language=='en' else 'Payer maintenant' }} — {{ '%.0f'|format(total_amount) }} XAF
+            </button>
+          </div>
+        </form>
+
+        <div id="feedback" class="mt-3 hidden">
+          <div class="alert mb-2 status-line" role="alert"></div>
+          <div class="small dim" id="subMsg"></div>
+        </div>
+      </div>
+
+      <div class="alert alert-info mt-3">
+        <i class="fa-solid fa-info-circle me-2"></i>
+        {{ 'If your payment remains pending, you can track the status on the next page.' if current_language=='en' else 'Si votre paiement reste en attente, vous pourrez suivre le statut sur la page suivante.' }}
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card p-3">
+        <h6 class="mb-2">{{ 'Booking summary' if current_language=='en' else 'Résumé de la réservation' }}</h6>
+        <div class="small text-secondary">{{ trip.route.origin }} → {{ trip.route.destination }}</div>
+        <div class="small">{{ 'Departure' if current_language=='en' else 'Départ' }}: {{ trip.departure_time.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div class="small">{{ 'Seats' if current_language=='en' else 'Places' }}: {{ selected_seats|join(', ') }}</div>
+        <hr>
+        <div class="d-flex align-items-center justify-content-between">
+          <div>{{ 'Total' if current_language=='en' else 'Total' }}</div>
+          <div class="fw-bold">{{ '%.0f'|format(total_amount) }} XAF</div>
+        </div>
+      </div>
+
+      <div class="card p-3 mt-3">
+        <h6 class="mb-2">{{ 'Passenger' if current_language=='en' else 'Passager' }}</h6>
+        <div class="small">{{ passenger_details.name }} — {{ passenger_details.phone }}</div>
+        <div class="small text-secondary">{{ passenger_details.email }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-card d-flex align-items-center gap-3">
+    <div class="spinner"></div>
+    <div>
+      <div class="fw-semibold">{{ 'Processing payment...' if current_language=='en' else 'Traitement du paiement...' }}</div>
+      <div class="small dim">{{ 'Check your phone to approve the transaction.' if current_language=='en' else 'Vérifiez votre téléphone pour approuver la transaction.' }}</div>
+    </div>
+  </div>
+  
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const lang = "{{ current_language }}";
+  const paymentForm = document.getElementById('paymentForm');
+  const loading = document.getElementById('loading');
+  const payBtn = document.getElementById('payBtn');
+  const feedback = document.getElementById('feedback');
+  const statusLine = feedback.querySelector('.alert');
+  const subMsg = document.getElementById('subMsg');
+
+  function showLoading(show){ loading.style.display = show ? 'flex' : 'none'; }
+  function showFeedback(type, message, sub){
+    feedback.classList.remove('hidden');
+    statusLine.className = 'alert status-line ' + (type==='success'?'alert-success': type==='pending'?'alert-warning':'alert-danger');
+    statusLine.textContent = message;
+    subMsg.textContent = sub || '';
+  }
+
+  async function submitPayment(e){
+    e.preventDefault();
+    showLoading(true);
+    payBtn.disabled = true;
+    try {
+      const formData = new FormData(paymentForm);
+      const res = await fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === 'success' || data.mesomb_status === 'SUCCESS') {
+        showLoading(false);
+        showFeedback('success', lang==='en'?'Payment successful! Redirecting...':'Paiement réussi ! Redirection...');
+        const url = data.redirect_url || `/${lang}/booking/confirmation/${data.booking_id}`;
+        setTimeout(()=> window.location.href = url, 800);
+      } else if (data.status === 'pending' || data.mesomb_status === 'PENDING' || res.status === 202) {
+        showLoading(false);
+        showFeedback('pending', lang==='en'?'Payment pending':'Paiement en attente', data.message || (lang==='en'?'Please approve on your phone.':'Veuillez approuver sur votre téléphone.'));
+        // Redirect to tracking page after a short delay
+        setTimeout(()=> window.location.href = `/${lang}/booking/payment-tracking/${data.booking_id}`, 1200);
+      } else {
+        showLoading(false);
+        showFeedback('error', data.message || (lang==='en'?'Payment failed':'Paiement échoué'));
+      }
+    } catch (err) {
+      showLoading(false);
+      showFeedback('error', lang==='en'?'An error occurred':'Une erreur s\'est produite');
+    } finally {
+      payBtn.disabled = false;
+    }
+  }
+
+  paymentForm.addEventListener('submit', submitPayment);
+</script>
+{% endblock %}

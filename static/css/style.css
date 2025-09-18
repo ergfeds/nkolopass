@@ -160,3 +160,95 @@ footer {
     background: linear-gradient(135deg, rgba(54, 185, 204, 0.1) 0%, rgba(54, 185, 204, 0.05) 100%);
     color: var(--info-color);
 }
+
+/* Navigation Enhancements */
+.navbar-brand {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.navbar-brand:hover {
+    transform: scale(1.05);
+}
+
+.logo-container {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.navbar-brand:hover .logo-container {
+    transform: rotate(360deg);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.brand-text {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Mobile Language Switcher */
+@media (max-width: 991.98px) {
+    .navbar-toggler {
+        border: none;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .navbar-toggler:focus {
+        box-shadow: none;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+}
+
+/* Desktop Navigation */
+@media (min-width: 992px) {
+    .nav-link {
+        font-weight: 500;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        transition: all 0.3s ease;
+        transform: translateX(-50%);
+    }
+    
+    .nav-link:hover::after {
+        width: 80%;
+    }
+}
+
+/* Button Enhancements */
+.btn-outline-primary.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-color: transparent;
+    color: white;
+}
+
+.btn-outline-secondary.active {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    border-color: transparent;
+    color: white;
+}

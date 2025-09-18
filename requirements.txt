@@ -13,4 +13,7 @@ dnspython==2.4.2
 requests==2.31.0
 pymesomb==2.0.3
 python-dotenv==1.0.0
+Flask-Babel==3.1.0
+pytz==2023.3
+secure-smtplib==0.1.1
 gunicorn==21.2.0

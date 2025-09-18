@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 db = SQLAlchemy()
@@ -409,3 +409,87 @@ class Customer(db.Model):
     
     def __repr__(self):
         return f'<Customer {self.name}>'
+
+class SeatBlock(db.Model):
+    """Temporary seat blocking to prevent double booking during payment process"""
+    id = db.Column(db.Integer, primary_key=True)
+    trip_id = db.Column(db.Integer, db.ForeignKey('trip.id'), nullable=False)
+    seat_numbers = db.Column(db.Text, nullable=False)  # JSON string of seat numbers
+    session_id = db.Column(db.String(100), nullable=False)  # Browser session ID
+    blocked_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    
+    # Relationships
+    trip = db.relationship('Trip', backref='seat_blocks')
+    
+    def __init__(self, trip_id, seat_numbers, session_id, duration_minutes=6):
+        self.trip_id = trip_id
+        self.seat_numbers = json.dumps(seat_numbers) if isinstance(seat_numbers, list) else seat_numbers
+        self.session_id = session_id
+        self.blocked_at = datetime.utcnow()
+        self.expires_at = self.blocked_at + timedelta(minutes=duration_minutes)
+    
+    def get_seat_numbers(self):
+        """Get list of blocked seat numbers"""
+        if self.seat_numbers:
+            try:
+                return json.loads(self.seat_numbers)
+            except:
+                return []
+        return []
+    
+    def is_expired(self):
+        """Check if the block has expired"""
+        return datetime.utcnow() > self.expires_at
+    
+    @classmethod
+    def cleanup_expired(cls):
+        """Remove all expired seat blocks"""
+        expired_blocks = cls.query.filter(cls.expires_at < datetime.utcnow()).all()
+        for block in expired_blocks:
+            db.session.delete(block)
+        db.session.commit()
+        return len(expired_blocks)
+    
+    @classmethod
+    def get_blocked_seats_for_trip(cls, trip_id, exclude_session=None):
+        """Get all currently blocked seats for a trip"""
+        # Clean up expired blocks first
+        cls.cleanup_expired()
+        
+        query = cls.query.filter(
+            cls.trip_id == trip_id,
+            cls.expires_at > datetime.utcnow()
+        )
+        
+        if exclude_session:
+            query = query.filter(cls.session_id != exclude_session)
+        
+        blocks = query.all()
+        blocked_seats = []
+        for block in blocks:
+            blocked_seats.extend(block.get_seat_numbers())
+        
+        return blocked_seats
+    
+    @classmethod
+    def block_seats(cls, trip_id, seat_numbers, session_id):
+        """Block seats for a session"""
+        # Remove any existing blocks for this session
+        existing_blocks = cls.query.filter_by(
+            trip_id=trip_id,
+            session_id=session_id
+        ).all()
+        
+        for block in existing_blocks:
+            db.session.delete(block)
+        
+        # Create new block
+        new_block = cls(trip_id, seat_numbers, session_id)
+        db.session.add(new_block)
+        db.session.commit()
+        
+        return new_block
+    
+    def __repr__(self):
+        return f'<SeatBlock Trip:{self.trip_id} Seats:{self.get_seat_numbers()} Session:{self.session_id}>'

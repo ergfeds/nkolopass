@@ -1,0 +1,571 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Change Trip' if current_language=='en' else 'Changer de Voyage' }} — {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .booking-summary {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .current-booking {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .booking-detail {
+    text-align: center;
+  }
+  
+  .detail-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  
+  .detail-value {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.95rem;
+  }
+  
+  .route-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-weight: 600;
+    color: #1e40af;
+    margin-bottom: 16px;
+  }
+  
+  .route-arrow {
+    color: #3b82f6;
+    font-size: 1.2rem;
+  }
+  
+  .current-seats {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .current-seat {
+    background: #dc2626;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  
+  .trip-selection-area {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+  
+  .trip-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    background: #fff;
+  }
+  
+  .trip-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+  }
+  
+  .trip-card.selected {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  }
+  
+  .trip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .trip-date {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e40af;
+  }
+  
+  .trip-time {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #059669;
+  }
+  
+  .trip-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .trip-detail {
+    text-align: center;
+  }
+  
+  .trip-detail-label {
+    font-size: 0.7rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  
+  .trip-detail-value {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.9rem;
+  }
+  
+  .availability-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .availability-good {
+    background: #dcfce7;
+    color: #166534;
+  }
+  
+  .availability-limited {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .change-summary {
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 20px 0;
+  }
+  
+  .change-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  
+  .action-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+    justify-content: center;
+  }
+  
+  .btn-confirm {
+    background: #10b981;
+    color: white;
+  }
+  
+  .btn-confirm:hover {
+    background: #059669;
+    color: white;
+    transform: translateY(-1px);
+  }
+  
+  .btn-cancel {
+    background: #6b7280;
+    color: white;
+  }
+  
+  .btn-cancel:hover {
+    background: #4b5563;
+    color: white;
+    transform: translateY(-1px);
+  }
+  
+  .btn-confirm:disabled {
+    background: #d1d5db;
+    color: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .alert-warning {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+  }
+  
+  .alert-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+  }
+  
+  .empty-state i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  
+  .radio-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .trip-selector {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-radius: 50%;
+    background: #fff;
+    transition: all 0.2s ease;
+  }
+  
+  .trip-card.selected .trip-selector {
+    border-color: #3b82f6;
+    background: #3b82f6;
+  }
+  
+  .trip-card.selected .trip-selector::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">{{ 'Change Trip Date' if current_language=='en' else 'Changer la Date du Voyage' }}</h2>
+      <p class="text-muted mb-0">{{ 'Select a new departure date for your booking' if current_language=='en' else 'Sélectionnez une nouvelle date de départ pour votre réservation' }}</p>
+    </div>
+    <a href="/{{ current_language }}/my-bookings" class="btn btn-outline-secondary">
+      <i class="fa-solid fa-arrow-left me-2"></i>
+      {{ 'Back to Bookings' if current_language=='en' else 'Retour aux Réservations' }}
+    </a>
+  </div>
+
+  <!-- Current Booking Summary -->
+  <div class="booking-summary">
+    <h5 class="mb-3">
+      <i class="fa-solid fa-ticket me-2"></i>
+      {{ 'Current Booking' if current_language=='en' else 'Réservation Actuelle' }}
+    </h5>
+    
+    <div class="route-display">
+      <span>{{ booking.trip.route.origin }}</span>
+      <i class="fa-solid fa-arrow-right route-arrow"></i>
+      <span>{{ booking.trip.route.destination }}</span>
+    </div>
+    
+    <div class="current-booking">
+      <div class="booking-detail">
+        <div class="detail-label">{{ 'Reference' if current_language=='en' else 'Référence' }}</div>
+        <div class="detail-value">{{ booking.booking_reference }}</div>
+      </div>
+      
+      <div class="booking-detail">
+        <div class="detail-label">{{ 'Current Date' if current_language=='en' else 'Date Actuelle' }}</div>
+        <div class="detail-value">{{ booking.trip.departure_time.strftime('%d/%m/%Y %H:%M') }}</div>
+      </div>
+      
+      <div class="booking-detail">
+        <div class="detail-label">{{ 'Operator' if current_language=='en' else 'Agence' }}</div>
+        <div class="detail-value">{{ booking.trip.operator.name }}</div>
+      </div>
+      
+      <div class="booking-detail">
+        <div class="detail-label">{{ 'Seats' if current_language=='en' else 'Places' }}</div>
+        <div class="current-seats">
+          {% for seat in booking.get_seat_numbers() %}
+            <span class="current-seat">{{ seat }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Messages -->
+  <div class="alert alert-info">
+    <i class="fa-solid fa-info-circle"></i>
+    <div>
+      <strong>{{ 'Trip Change Policy:' if current_language=='en' else 'Politique de Changement de Voyage :' }}</strong>
+      {{ 'You can change to any future trip with the same operator, route, and price. Changes are free if made at least 2 hours before departure.' if current_language=='en' else 'Vous pouvez changer pour tout voyage futur avec le même opérateur, trajet et prix. Les changements sont gratuits s\'ils sont effectués au moins 2 heures avant le départ.' }}
+    </div>
+  </div>
+
+  <!-- Trip Selection -->
+  <div class="trip-selection-area">
+    <h5 class="mb-3 text-center">
+      <i class="fa-solid fa-calendar-alt me-2"></i>
+      {{ 'Available Alternative Trips' if current_language=='en' else 'Voyages Alternatifs Disponibles' }}
+    </h5>
+
+    {% if alternative_trips %}
+      <div id="tripsList">
+        {% for alt_trip in alternative_trips %}
+        <div class="trip-card" onclick="selectTrip('{{ alt_trip.trip.id }}', this)" data-trip-id="{{ alt_trip.trip.id }}">
+          <div class="trip-selector"></div>
+          <input type="radio" name="selected_trip" value="{{ alt_trip.trip.id }}" class="radio-input">
+          
+          <div class="trip-header">
+            <div class="trip-date">
+              {{ alt_trip.trip.departure_time.strftime('%A, %d %B %Y') }}
+            </div>
+            <div class="trip-time">
+              {{ alt_trip.trip.departure_time.strftime('%H:%M') }}
+            </div>
+          </div>
+          
+          <div class="trip-details">
+            <div class="trip-detail">
+              <div class="trip-detail-label">{{ 'Operator' if current_language=='en' else 'Agence' }}</div>
+              <div class="trip-detail-value">{{ alt_trip.trip.operator.name }}</div>
+            </div>
+            
+            <div class="trip-detail">
+              <div class="trip-detail-label">{{ 'Price' if current_language=='en' else 'Prix' }}</div>
+              <div class="trip-detail-value">{{ '%.0f'|format(alt_trip.trip.seat_price) }} XAF</div>
+            </div>
+            
+            <div class="trip-detail">
+              <div class="trip-detail-label">{{ 'Available Seats' if current_language=='en' else 'Places Disponibles' }}</div>
+              <div class="trip-detail-value">
+                <span class="availability-badge {{ 'availability-good' if alt_trip.available_seats > 10 else 'availability-limited' }}">
+                  {{ alt_trip.available_seats }} {{ 'seats' if current_language=='en' else 'places' }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="trip-detail">
+              <div class="trip-detail-label">{{ 'Bus Type' if current_language=='en' else 'Type de Bus' }}</div>
+              <div class="trip-detail-value">{{ alt_trip.trip.bus_type.name if alt_trip.trip.bus_type else 'Standard' }}</div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Change Summary -->
+      <div class="change-summary" id="changeSummary" style="display: none;">
+        <h6 class="mb-2">
+          <i class="fa-solid fa-exchange-alt me-2"></i>
+          {{ 'Trip Change Summary' if current_language=='en' else 'Résumé du Changement de Voyage' }}
+        </h6>
+        <div id="summaryContent"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="change-actions">
+        <button id="confirmBtn" class="action-btn btn-confirm" onclick="confirmTripChange()" disabled>
+          <i class="fa-solid fa-check"></i>
+          {{ 'Confirm Change' if current_language=='en' else 'Confirmer le Changement' }}
+        </button>
+        
+        <a href="/{{ current_language }}/my-bookings" class="action-btn btn-cancel">
+          <i class="fa-solid fa-times"></i>
+          {{ 'Cancel' if current_language=='en' else 'Annuler' }}
+        </a>
+      </div>
+
+    {% else %}
+      <!-- Empty State -->
+      <div class="empty-state">
+        <i class="fa-solid fa-calendar-times"></i>
+        <h4>{{ 'No Alternative Trips Available' if current_language=='en' else 'Aucun Voyage Alternatif Disponible' }}</h4>
+        <p class="mb-4">
+          {{ 'There are currently no alternative trips available with the same operator, route, and price. Please try again later or contact customer support.' if current_language=='en' else 'Il n\'y a actuellement aucun voyage alternatif disponible avec le même opérateur, trajet et prix. Veuillez réessayer plus tard ou contacter le support client.' }}
+        </p>
+        <a href="/{{ current_language }}/my-bookings" class="btn btn-primary">
+          <i class="fa-solid fa-arrow-left me-2"></i>
+          {{ 'Back to My Bookings' if current_language=='en' else 'Retour à Mes Réservations' }}
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Template Variables -->
+<script id="template-data" type="application/json">
+{
+  "lang": "{{ current_language }}",
+  "bookingId": {{ booking.id }},
+  "currentTripId": {{ booking.trip.id }},
+  "requiredSeats": {{ required_seats }}
+}
+</script>
+
+<script>
+  // Get template data
+  const templateData = JSON.parse(document.getElementById('template-data').textContent);
+  const lang = templateData.lang;
+  const bookingId = templateData.bookingId;
+  const currentTripId = templateData.currentTripId;
+  const requiredSeats = templateData.requiredSeats;
+  let selectedTripId = null;
+
+  function selectTrip(tripId, element) {
+    tripId = parseInt(tripId); // Convert string to number
+    // Remove selection from all cards
+    document.querySelectorAll('.trip-card').forEach(card => {
+      card.classList.remove('selected');
+      card.querySelector('input[type="radio"]').checked = false;
+    });
+
+    // Select current card
+    element.classList.add('selected');
+    element.querySelector('input[type="radio"]').checked = true;
+    selectedTripId = tripId;
+
+    updateSummary();
+  }
+
+  function updateSummary() {
+    const summaryDiv = document.getElementById('changeSummary');
+    const summaryContent = document.getElementById('summaryContent');
+    const confirmBtn = document.getElementById('confirmBtn');
+
+    if (!selectedTripId) {
+      summaryDiv.style.display = 'none';
+      confirmBtn.disabled = true;
+      return;
+    }
+
+    // Show summary
+    summaryDiv.style.display = 'block';
+    confirmBtn.disabled = false;
+
+    // Get selected trip details
+    const selectedCard = document.querySelector(`[data-trip-id="${selectedTripId}"]`);
+    const newDate = selectedCard.querySelector('.trip-date').textContent;
+    const newTime = selectedCard.querySelector('.trip-time').textContent;
+    
+    summaryContent.innerHTML = `
+      <div class="row">
+        <div class="col-md-6">
+          <strong>${lang === 'en' ? 'From:' : 'De :'}</strong><br>
+          <small class="text-muted">{{ booking.trip.departure_time.strftime('%A, %d %B %Y') }} {{ booking.trip.departure_time.strftime('%H:%M') }}</small>
+        </div>
+        <div class="col-md-6">
+          <strong>${lang === 'en' ? 'To:' : 'Vers :'}</strong><br>
+          <small class="text-success">${newDate} ${newTime}</small>
+        </div>
+      </div>
+      <div class="mt-2 text-center">
+        <small class="text-muted">
+          ${lang === 'en' ? 'Your seat numbers will remain the same' : 'Vos numéros de places resteront les mêmes'} ({{ booking.get_seat_numbers()|join(', ') }})
+        </small>
+      </div>
+    `;
+  }
+
+  async function confirmTripChange() {
+    if (!selectedTripId) return;
+
+    const confirmBtn = document.getElementById('confirmBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      ${lang === 'en' ? 'Processing...' : 'Traitement...'}
+    `;
+
+    try {
+      const response = await fetch(`/${lang}/api/change-trip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          new_trip_id: selectedTripId
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(lang === 'en' 
+          ? 'Trip changed successfully! Redirecting to your bookings...'
+          : 'Voyage changé avec succès ! Redirection vers vos réservations...');
+        
+        window.location.href = `/${lang}/my-bookings`;
+      } else {
+        throw new Error(result.message || 'Unknown error');
+      }
+    } catch (error) {
+      alert(lang === 'en' 
+        ? `Error changing trip: ${error.message}`
+        : `Erreur lors du changement de voyage : ${error.message}`);
+      
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = `
+        <i class="fa-solid fa-check"></i>
+        ${lang === 'en' ? 'Confirm Change' : 'Confirmer le Changement'}
+      `;
+    }
+  }
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', function() {
+    updateSummary();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'My Bookings' if current_language=='en' else 'Mes Réservations' }} — {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .booking-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    overflow: hidden;
+  }
+  
+  .booking-card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+  
+  .booking-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .booking-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .status-confirmed {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .status-pending {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .status-failed {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  .route-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .route-arrow {
+    color: #667eea;
+    font-size: 1.1rem;
+  }
+  
+  .booking-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .action-btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .btn-view {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+  }
+  
+  .btn-view:hover {
+    background: #5a6fd8;
+    color: white;
+  }
+  
+  .btn-change {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+  }
+  
+  .btn-change:hover {
+    background: #218838;
+    color: white;
+  }
+  
+  .btn-cancel {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+  }
+  
+  .btn-cancel:hover {
+    background: #c82333;
+    color: white;
+  }
+  
+  .search-section {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+  }
+  
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+  }
+  
+  .seat-badges {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  
+  .seat-badge {
+    background: #667eea;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">{{ 'My Bookings' if current_language=='en' else 'Mes Réservations' }}</h2>
+      <p class="text-muted mb-0">{{ 'Manage your bus tickets and reservations' if current_language=='en' else 'Gérez vos billets de bus et réservations' }}</p>
+    </div>
+    <a href="/{{ current_language }}/" class="btn btn-outline-secondary">
+      <i class="fa-solid fa-arrow-left me-2"></i>
+      {{ 'Back to Home' if current_language=='en' else 'Retour à l\'accueil' }}
+    </a>
+  </div>
+
+  <!-- Search Section -->
+  <div class="search-section">
+    <h5 class="mb-3">
+      <i class="fa-solid fa-search me-2"></i>
+      {{ 'Find Your Bookings' if current_language=='en' else 'Trouvez Vos Réservations' }}
+    </h5>
+    
+    <form id="searchForm" class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">{{ 'Phone Number or Email' if current_language=='en' else 'Numéro de Téléphone ou Email' }}</label>
+        <input type="text" class="form-control" id="searchInput" 
+               placeholder="{{ '6XXXXXXXX or email@example.com' if current_language=='en' else '6XXXXXXXX ou email@exemple.com' }}"
+               value="{{ request.args.get('search', '') }}">
+      </div>
+      
+      <div class="col-md-3">
+        <label class="form-label">{{ 'Booking Reference' if current_language=='en' else 'Référence de Réservation' }} <span class="text-muted">({{ 'optional' if current_language=='en' else 'optionnel' }})</span></label>
+        <input type="text" class="form-control" id="refInput" 
+               placeholder="{{ 'NKP123456' if current_language=='en' else 'NKP123456' }}"
+               value="{{ request.args.get('ref', '') }}">
+      </div>
+      
+      <div class="col-md-3">
+        <label class="form-label">{{ 'Status' if current_language=='en' else 'Statut' }}</label>
+        <select class="form-select" id="statusFilter">
+          <option value="">{{ 'All Status' if current_language=='en' else 'Tous les Statuts' }}</option>
+          <option value="confirmed">{{ 'Confirmed' if current_language=='en' else 'Confirmé' }}</option>
+          <option value="pending">{{ 'Pending' if current_language=='en' else 'En Attente' }}</option>
+          <option value="failed">{{ 'Failed' if current_language=='en' else 'Échoué' }}</option>
+        </select>
+      </div>
+      
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="fa-solid fa-search me-2"></i>
+          {{ 'Search' if current_language=='en' else 'Rechercher' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Results Section -->
+  <div id="resultsSection">
+    {% if bookings %}
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+          {{ 'Found' if current_language=='en' else 'Trouvé' }} {{ bookings|length }} 
+          {{ 'booking(s)' if current_language=='en' else 'réservation(s)' }}
+        </h5>
+        
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary active" data-view="cards">
+            <i class="fa-solid fa-th-large"></i>
+          </button>
+          <button class="btn btn-outline-secondary" data-view="list">
+            <i class="fa-solid fa-list"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bookings Grid -->
+      <div class="row g-4" id="bookingsGrid">
+        {% for booking in bookings %}
+        <div class="col-lg-6 col-xl-4">
+          <div class="booking-card">
+            <!-- Header -->
+            <div class="booking-header">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <div class="fw-bold text-primary">{{ booking.booking_reference }}</div>
+                  <div class="small text-muted">{{ booking.created_at.strftime('%d/%m/%Y %H:%M') if booking.created_at else 'N/A' }}</div>
+                </div>
+                <span class="booking-status status-{{ booking.status }}">
+                  {% if booking.status == 'confirmed' %}
+                    {{ 'Confirmed' if current_language=='en' else 'Confirmé' }}
+                  {% elif booking.status == 'pending' %}
+                    {{ 'Pending' if current_language=='en' else 'En Attente' }}
+                  {% else %}
+                    {{ booking.status|title }}
+                  {% endif %}
+                </span>
+              </div>
+              
+              <!-- Route -->
+              <div class="route-display">
+                <span>{{ booking.trip.route.origin }}</span>
+                <i class="fa-solid fa-arrow-right route-arrow"></i>
+                <span>{{ booking.trip.route.destination }}</span>
+              </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-3">
+              <div class="row g-2 small mb-3">
+                <div class="col-6">
+                  <div class="text-muted">{{ 'Date & Time' if current_language=='en' else 'Date & Heure' }}</div>
+                  <div class="fw-semibold">{{ booking.trip.departure_time.strftime('%d/%m/%Y') }}</div>
+                  <div class="fw-semibold">{{ booking.trip.departure_time.strftime('%H:%M') }}</div>
+                </div>
+                <div class="col-6">
+                  <div class="text-muted">{{ 'Operator' if current_language=='en' else 'Agence' }}</div>
+                  <div class="fw-semibold">{{ booking.trip.operator.name }}</div>
+                </div>
+                <div class="col-6">
+                  <div class="text-muted">{{ 'Passenger' if current_language=='en' else 'Passager' }}</div>
+                  <div class="fw-semibold">{{ booking.customer.name if booking.customer else 'N/A' }}</div>
+                </div>
+                <div class="col-6">
+                  <div class="text-muted">{{ 'Amount' if current_language=='en' else 'Montant' }}</div>
+                  <div class="fw-semibold text-success">{{ '%.0f'|format(booking.total_amount) }} XAF</div>
+                </div>
+              </div>
+
+              <!-- Seats -->
+              <div class="mb-3">
+                <div class="text-muted small mb-1">{{ 'Seat(s)' if current_language=='en' else 'Place(s)' }}</div>
+                <div class="seat-badges">
+                  {% for seat in booking.get_seat_numbers() %}
+                    <span class="seat-badge">{{ seat }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="booking-actions">
+                <a href="/{{ current_language }}/booking/ticket/{{ booking.id }}" class="action-btn btn-view">
+                  <i class="fa-solid fa-ticket"></i>
+                  {{ 'View Ticket' if current_language=='en' else 'Voir Billet' }}
+                </a>
+                
+                {% if booking.status == 'confirmed' and booking.trip.departure_time > now %}
+                  <a href="/{{ current_language }}/booking/change-seats/{{ booking.id }}" class="action-btn btn-change">
+                    <i class="fa-solid fa-exchange-alt"></i>
+                    {{ 'Change Seats' if current_language=='en' else 'Changer Places' }}
+                  </a>
+                  
+                  <a href="/{{ current_language }}/booking/change-trip/{{ booking.id }}" class="action-btn btn-change">
+                    <i class="fa-solid fa-calendar-alt"></i>
+                    {{ 'Change Trip' if current_language=='en' else 'Changer Voyage' }}
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+    {% else %}
+      <!-- Empty State -->
+      <div class="empty-state">
+        <i class="fa-solid fa-ticket"></i>
+        <h4>{{ 'No bookings found' if current_language=='en' else 'Aucune réservation trouvée' }}</h4>
+        <p class="mb-4">
+          {% if request.args.get('search') or request.args.get('ref') %}
+            {{ 'No bookings match your search criteria. Please try different search terms.' if current_language=='en' else 'Aucune réservation ne correspond à vos critères de recherche. Veuillez essayer d\'autres termes de recherche.' }}
+          {% else %}
+            {{ 'Enter your phone number or email above to find your bookings.' if current_language=='en' else 'Entrez votre numéro de téléphone ou email ci-dessus pour trouver vos réservations.' }}
+          {% endif %}
+        </p>
+        <a href="/{{ current_language }}/" class="btn btn-primary">
+          <i class="fa-solid fa-plus me-2"></i>
+          {{ 'Book New Trip' if current_language=='en' else 'Réserver Nouveau Voyage' }}
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const lang = "{{ current_language }}";
+
+  // Search form handler
+  document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const searchInput = document.getElementById('searchInput').value.trim();
+    const refInput = document.getElementById('refInput').value.trim();
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    if (!searchInput && !refInput) {
+      alert(lang === 'en' ? 'Please enter phone number, email, or booking reference' : 'Veuillez entrer le numéro de téléphone, l\'email ou la référence de réservation');
+      return;
+    }
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (searchInput) params.set('search', searchInput);
+    if (refInput) params.set('ref', refInput);
+    if (statusFilter) params.set('status', statusFilter);
+    
+    // Redirect with search parameters
+    window.location.href = `/${lang}/my-bookings?${params.toString()}`;
+  });
+
+  // View toggle functionality
+  document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Update active button
+      document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      const view = this.dataset.view;
+      const grid = document.getElementById('bookingsGrid');
+      
+      if (view === 'list') {
+        grid.className = 'row g-2';
+        grid.querySelectorAll('.col-lg-6').forEach(col => {
+          col.className = 'col-12';
+        });
+      } else {
+        grid.className = 'row g-4';
+        grid.querySelectorAll('.col-12').forEach(col => {
+          col.className = 'col-lg-6 col-xl-4';
+        });
+      }
+    });
+  });
+
+  // Auto-search if parameters are present
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasSearch = urlParams.get('search') || urlParams.get('ref');
+    
+    if (hasSearch) {
+      // Log search activity for debugging
+      console.log('Search parameters detected:', {
+        search: urlParams.get('search'),
+        ref: urlParams.get('ref')
+      });
+    }
+  });
+</script>
+{% endblock %}

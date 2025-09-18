@@ -1,737 +1,530 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nkolo Pass - Réservation de Bus en Ligne | Online Bus Booking</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #10b981;
-            --danger-color: #ef4444;
-            --dark-color: #1f2937;
-            --light-bg: #f3f4f6;
-        }
+{% extends 'base.html' %}
+{% block title %}{{ site_name }} — Book Your Trip{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hero {
+    position: relative;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    overflow: hidden;
+  }
+  
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="white" opacity="0.1"><path d="M0,0v46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1047.71,5.4,1100.08,25.29V0Z"></path></svg>') repeat-x;
+    background-size: 1000px 100px;
+    animation: wave 20s linear infinite;
+  }
+  
+  @keyframes wave {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-1000px); }
+  }
+  
+  .hero-content {
+    position: relative;
+    z-index: 2;
+  }
+  
+  .hero-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    color: #333;
+  }
+  
+  .floating-badge {
+    position: absolute; 
+    right: 1rem; 
+    top: -0.75rem;
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  .operator-logo { 
+    height: 26px; 
+    width: auto; 
+  }
+  
+  .feature-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    margin: 0 auto 1rem;
+  }
+  
+  .stats-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 2rem;
+    text-align: center;
+    color: white;
+  }
+  
+  .stats-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #ffd700;
+  }
+  
+  .popular-trips-card {
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    transition: transform 0.3s ease;
+  }
+  
+  .popular-trips-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .section-title {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 3rem;
+  }
+  
+  .section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border-radius: 2px;
+  }
+  
+  .cta-section {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+  }
+  
+  .btn-gradient {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border: none;
+    color: white;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    color: white;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="hero py-5">
+  <div class="container py-4 hero-content">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-6">
+        <div class="mb-3">
+          <span class="badge bg-warning text-dark px-3 py-2 rounded-pill">
+            <i class="fas fa-star me-1"></i>{{ '#1 Bus Booking Platform' if current_language=='en' else 'Plateforme N°1 de Réservation' }}
+          </span>
+        </div>
+        <h1 class="display-4 fw-bold mb-4">
+          {{ 'Travel Smart Across' if current_language=='en' else 'Voyagez Malin à Travers le' }}
+          <span class="text-warning">{{ 'Cameroon' if current_language=='en' else 'Cameroun' }}</span> 🇨🇲
+        </h1>
+        <p class="fs-5 mb-4 opacity-90">
+          {{ 'Compare routes, operators, and prices. Book seats instantly with Mobile Money and get your e-ticket immediately.' if current_language=='en' else 'Comparez les trajets, agences et prix. Réservez instantanément via Mobile Money et recevez votre e-ticket immédiatement.' }}
+        </p>
         
-        /* Hero Section */
-        .hero-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 600px;
-            position: relative;
-            overflow: hidden;
-        }
+        <!-- Stats Row -->
+        <div class="row g-3 mb-4">
+          <div class="col-4">
+            <div class="stats-card">
+              <div class="stats-number">50+</div>
+              <small>{{ 'Routes' if current_language=='en' else 'Trajets' }}</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stats-card">
+              <div class="stats-number">20+</div>
+              <small>{{ 'Operators' if current_language=='en' else 'Agences' }}</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stats-card">
+              <div class="stats-number">24/7</div>
+              <small>{{ 'Support' if current_language=='en' else 'Support' }}</small>
+            </div>
+          </div>
+        </div>
         
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,165.3C384,171,480,149,576,154.7C672,160,768,192,864,197.3C960,203,1056,181,1152,165.3C1248,149,1344,139,1392,133.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
-            background-size: cover;
-        }
-        
-        .bus-illustration {
-            position: absolute;
-            right: -100px;
-            bottom: 50px;
-            width: 500px;
-            opacity: 0.3;
-            animation: float 6s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-        
-        /* Search Form */
-        .search-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            padding: 30px;
-            margin-top: -100px;
-            position: relative;
-            z-index: 10;
-        }
-        
-        .search-input {
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 12px 20px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        
-        .search-input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-        
-        /* Quick Date Buttons */
-        .search-card .btn-outline-secondary {
-            border-color: #dee2e6;
-            color: #6c757d;
-            transition: all 0.3s ease;
-        }
-        
-        .search-card .btn-outline-secondary:hover {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            color: white;
-        }
-        
-        .search-card .btn-outline-secondary.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-color: #667eea;
-            color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        /* Language Switcher */
-        .lang-switcher {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            gap: 5px;
-            background: white;
-            border-radius: 25px;
-            padding: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .lang-btn {
-            padding: 8px 16px;
-            border: none;
-            background: transparent;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: #6b7280;
-        }
-        
-        .lang-btn.active {
-            background: #2563eb;
-            color: white;
-        }
-        
-        .lang-btn:hover {
-            background: #2563eb;
-            color: white;
-        }
-        
-        /* Feature Cards */
-        .feature-card {
-            text-align: center;
-            padding: 30px;
-            border-radius: 15px;
-            background: white;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        }
-        
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-        }
-        
-        /* Navbar */
-        .navbar {
-            background: white !important;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 15px 0;
-        }
-        
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 24px;
-            color: var(--primary-color) !important;
-        }
-        
-        .nav-link {
-            font-weight: 500;
-            color: var(--dark-color) !important;
-            margin: 0 10px;
-            transition: color 0.3s;
-        }
-        
-        .nav-link:hover {
-            color: var(--primary-color) !important;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero-section {
-                min-height: 500px;
-            }
-            
-            .search-card {
-                margin: 20px;
-                padding: 20px;
-            }
-            
-            .bus-illustration {
-                display: none;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Language Switcher -->
-    <div class="lang-switcher">
-        <button class="lang-btn active" data-lang-switch="fr">FR</button>
-        <button class="lang-btn" data-lang-switch="en">EN</button>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+          <a href="#searchForm" class="btn btn-gradient btn-lg">
+            <i class="fas fa-search me-2"></i>{{ 'Book Now' if current_language=='en' else 'Réserver Maintenant' }}
+          </a>
+          <div class="d-flex align-items-center text-white-50">
+            <div class="me-3">
+              <i class="fas fa-shield-alt text-success fs-5 me-2"></i>
+              <small>{{ 'Secure Payment' if current_language=='en' else 'Paiement Sécurisé' }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card hero-card p-3 p-md-4">
+          <div class="position-relative">
+            <span class="badge bg-primary floating-badge">{{ 'New' if current_language=='en' else 'Nouveau' }}</span>
+          </div>
+          <form id="searchForm" class="mt-2">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{{ 'From' if current_language=='en' else 'De' }}</label>
+                <select class="form-select" id="fromCity" required></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ 'To' if current_language=='en' else 'À' }}</label>
+                <select class="form-select" id="toCity" required></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ 'Date' if current_language=='en' else 'Date' }}</label>
+                <input type="date" class="form-control" id="travelDate" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{{ 'Agency *' if current_language=='en' else 'Agence *' }}</label>
+                <select class="form-select" id="operatorSelect" required></select>
+              </div>
+              <div class="col-12 d-grid d-md-flex gap-2 mt-2">
+                <button type="submit" class="btn btn-primary px-4"><i class="fa-solid fa-magnifying-glass me-2"></i>{{ 'Search trips' if current_language=='en' else 'Rechercher des trajets' }}</button>
+                <a class="btn btn-outline-secondary" href="/{{ current_language }}/bookings"><i class="fa-solid fa-ticket me-2"></i>{{ 'My bookings' if current_language=='en' else 'Mes réservations' }}</a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5 bg-light">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="section-title fw-bold">
+        {{ 'Why Choose Nkolo Pass?' if current_language=='en' else 'Pourquoi Choisir Nkolo Pass?' }}
+      </h2>
+      <p class="text-muted">
+        {{ 'Experience the future of bus travel in Cameroon' if current_language=='en' else 'Découvrez l\'avenir du voyage en bus au Cameroun' }}
+      </p>
     </div>
     
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-bus"></i> Nkolo Pass
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/" data-i18n="nav.home">Accueil</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/search" data-i18n="nav.search">Rechercher des Voyages</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/retrieve-ticket">
-                            <i class="fas fa-ticket-alt"></i> 
-                            <span data-i18n="nav.retrieve">Récupérer Billet</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/bookings" data-i18n="nav.bookings">Mes Réservations</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/contact" data-i18n="nav.contact">Contact</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/login" data-i18n="nav.login">Connexion</a>
-                    </li>
-                </ul>
-            </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="text-center">
+          <div class="feature-icon">
+            <i class="fas fa-mobile-alt"></i>
+          </div>
+          <h5 class="fw-bold mb-3">{{ 'Mobile Money Payment' if current_language=='en' else 'Paiement Mobile Money' }}</h5>
+          <p class="text-muted">
+            {{ 'Pay securely with MTN Mobile Money, Orange Money, or any mobile wallet. No cash needed!' if current_language=='en' else 'Payez en toute sécurité avec MTN Mobile Money, Orange Money ou tout portefeuille mobile. Pas besoin d\'espèces!' }}
+          </p>
         </div>
-    </nav>
-    
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="container position-relative">
-            <div class="row align-items-center" style="min-height: 500px;">
-                <div class="col-lg-7">
-                    <h1 class="display-4 fw-bold text-white mb-4" data-i18n="hero.title">
-                        La Plateforme #1 de Réservation de Bus au Cameroun
-                    </h1>
-                    <p class="lead text-white mb-5" data-i18n="hero.subtitle">
-                        Réservez vos billets de bus en ligne facilement
-                    </p>
-                </div>
-            </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="text-center">
+          <div class="feature-icon">
+            <i class="fas fa-ticket-alt"></i>
+          </div>
+          <h5 class="fw-bold mb-3">{{ 'Instant E-Tickets' if current_language=='en' else 'E-Billets Instantanés' }}</h5>
+          <p class="text-muted">
+            {{ 'Get your boarding pass immediately via email and SMS. No more waiting in queues!' if current_language=='en' else 'Recevez votre carte d\'embarquement immédiatement par email et SMS. Plus d\'attente dans les files!' }}
+          </p>
         </div>
-        <svg class="bus-illustration" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
-            <rect x="50" y="100" width="400" height="150" rx="20" fill="white" opacity="0.9"/>
-            <rect x="70" y="120" width="80" height="60" rx="5" fill="#667eea" opacity="0.5"/>
-            <rect x="170" y="120" width="80" height="60" rx="5" fill="#667eea" opacity="0.5"/>
-            <rect x="270" y="120" width="80" height="60" rx="5" fill="#667eea" opacity="0.5"/>
-            <rect x="370" y="120" width="60" height="60" rx="5" fill="#667eea" opacity="0.5"/>
-            <circle cx="120" cy="250" r="25" fill="#333" opacity="0.7"/>
-            <circle cx="380" cy="250" r="25" fill="#333" opacity="0.7"/>
-        </svg>
-    </section>
-    
-    <!-- Search Form -->
-    <div class="container">
-        <div class="search-card">
-            <form id="searchForm" method="GET">
-                <div class="row g-3">
-                    <!-- From City -->
-                    <div class="col-md-3">
-                        <label class="form-label" data-i18n="search.from">De</label>
-                        <select class="form-select search-input" name="from" id="fromCity" required>
-                            <option value="" data-i18n="search.from_placeholder">Ville de départ</option>
-                        </select>
-                    </div>
-                    
-                    <!-- To City -->
-                    <div class="col-md-3">
-                        <label class="form-label" data-i18n="search.to">À</label>
-                        <select class="form-select search-input" name="to" id="toCity" required>
-                            <option value="" data-i18n="search.to_placeholder">Ville d'arrivée</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Operator -->
-                    <div class="col-md-2">
-                        <label class="form-label" data-i18n="search.operator">Opérateur</label>
-                        <select class="form-select search-input" name="operator" id="operator" required>
-                            <option value="" data-i18n="search.select_route_first">Sélectionnez d'abord un itinéraire</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Date -->
-                    <div class="col-md-2">
-                        <label class="form-label" data-i18n="search.date">Date</label>
-                        <input type="date" class="form-control search-input" name="date" id="travelDate" required>
-                    </div>
-                    
-                    <!-- Search Button -->
-                    <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
-                        <button type="submit" class="btn btn-primary w-100 search-input" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
-                            <i class="fas fa-search me-2"></i>
-                            <span data-i18n="search.search_buses">Rechercher</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Quick Date Selection -->
-                <div class="mt-3">
-                    <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="setToday()">
-                        <span data-i18n="search.today">Aujourd'hui</span>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setTomorrow()">
-                        <span data-i18n="search.tomorrow">Demain</span>
-                    </button>
-                </div>
-            </form>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="text-center">
+          <div class="feature-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h5 class="fw-bold mb-3">{{ 'Trusted Operators' if current_language=='en' else 'Agences de Confiance' }}</h5>
+          <p class="text-muted">
+            {{ 'All our partner operators are verified and licensed. Travel with confidence and safety.' if current_language=='en' else 'Tous nos partenaires sont vérifiés et agréés. Voyagez en toute confiance et sécurité.' }}
+          </p>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Popular Routes Section -->
+<section class="py-5">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="section-title fw-bold">
+        {{ 'Popular Routes' if current_language=='en' else 'Trajets Populaires' }}
+      </h2>
+      <p class="text-muted">
+        {{ 'Discover the most traveled routes across Cameroon' if current_language=='en' else 'Découvrez les trajets les plus fréquentés à travers le Cameroun' }}
+      </p>
     </div>
     
-    <!-- Upcoming Trips Section -->
-    <section class="py-5 mt-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5" data-i18n="trips.upcoming">Prochains Départs</h2>
-            <div id="upcomingTrips" class="row g-4">
-                <!-- Trips will be loaded here -->
+    <div class="row" id="popularTrips">
+      <!-- Popular trips will be loaded here by JavaScript -->
+    </div>
+  </div>
+</section>
+
+<section class="py-5 bg-light">
+  <div class="container">
+    <!-- Ticket Search Section -->
+    <div class="mt-5">
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <h5 class="card-title mb-3">
+                <i class="fa-solid fa-ticket text-primary me-2"></i>
+                {{ 'Find My Ticket' if current_language=='en' else 'Retrouver Mon Billet' }}
+              </h5>
+              <p class="text-muted small mb-3">
+                {{ 'Enter your phone number or email to retrieve your tickets' if current_language=='en' else 'Entrez votre numéro de téléphone ou email pour retrouver vos billets' }}
+              </p>
+              
+              <form id="ticketSearchForm">
+                <div class="mb-3">
+                  <label class="form-label">{{ 'Phone Number or Email' if current_language=='en' else 'Numéro de Téléphone ou Email' }}</label>
+                  <input type="text" class="form-control" id="searchInput" 
+                         placeholder="{{ '6XXXXXXXX or email@example.com' if current_language=='en' else '6XXXXXXXX ou email@exemple.com' }}" 
+                         required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="fa-solid fa-search me-2"></i>
+                  {{ 'Search Tickets' if current_language=='en' else 'Rechercher Billets' }}
+                </button>
+              </form>
             </div>
-            <div class="text-center mt-4">
-                <a href="/search" class="btn btn-primary">
-                    <i class="fas fa-search me-2"></i> <span data-i18n="trips.view_all">Voir tous les voyages</span>
-                </a>
-            </div>
+          </div>
         </div>
-    </section>
-    
-    <!-- Features Section -->
-    <section class="py-5 mt-5">
-        <div class="container">
-            <h2 class="text-center mb-5" data-i18n="features.title">Pourquoi Nous Choisir?</h2>
-            <div class="row g-4">
-                <div class="col-md-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <h5 data-i18n="features.secure">Réservation Sécurisée</h5>
-                        <p class="text-muted" data-i18n="features.secure_desc">Paiement en ligne sûr et sécurisé</p>
-                    </div>
+        
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <h5 class="card-title mb-3">
+                <i class="fa-solid fa-cog text-success me-2"></i>
+                {{ 'Manage Booking' if current_language=='en' else 'Gérer Réservation' }}
+              </h5>
+              <p class="text-muted small mb-3">
+                {{ 'Change seats or modify your trip with booking reference' if current_language=='en' else 'Changer de places ou modifier votre voyage avec la référence de réservation' }}
+              </p>
+              
+              <form id="bookingManageForm">
+                <div class="mb-3">
+                  <label class="form-label">{{ 'Booking Reference' if current_language=='en' else 'Référence de Réservation' }}</label>
+                  <input type="text" class="form-control" id="bookingRef" 
+                         placeholder="{{ 'NKP123456' if current_language=='en' else 'NKP123456' }}" 
+                         required>
                 </div>
-                <div class="col-md-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-bus"></i>
-                        </div>
-                        <h5 data-i18n="features.operators">Plusieurs Opérateurs</h5>
-                        <p class="text-muted" data-i18n="features.operators_desc">Choisissez parmi différents opérateurs</p>
-                    </div>
+                <div class="mb-3">
+                  <label class="form-label">{{ 'Phone or Email' if current_language=='en' else 'Téléphone ou Email' }}</label>
+                  <input type="text" class="form-control" id="verifyInput" 
+                         placeholder="{{ 'For verification' if current_language=='en' else 'Pour vérification' }}" 
+                         required>
                 </div>
-                <div class="col-md-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-headset"></i>
-                        </div>
-                        <h5 data-i18n="features.support">Support 24/7</h5>
-                        <p class="text-muted" data-i18n="features.support_desc">Service client disponible 24h/24</p>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="fas fa-undo"></i>
-                        </div>
-                        <h5 data-i18n="features.easy">Remboursements Faciles</h5>
-                        <p class="text-muted" data-i18n="features.easy_desc">Remboursements rapides et sans tracas</p>
-                    </div>
-                </div>
+                <button type="submit" class="btn btn-success w-100">
+                  <i class="fa-solid fa-edit me-2"></i>
+                  {{ 'Manage Booking' if current_language=='en' else 'Gérer Réservation' }}
+                </button>
+              </form>
             </div>
+          </div>
         </div>
-    </section>
-    
-    <!-- Language Selection Modal -->
-    <div class="modal fade" id="languageModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-0 text-center">
-                    <div class="w-100">
-                        <h4 class="modal-title text-center">
-                            <i class="fas fa-globe me-2"></i>
-                            Choose Your Language / Choisissez Votre Langue
-                        </h4>
-                    </div>
-                </div>
-                <div class="modal-body text-center py-4">
-                    <p class="mb-4">Please select your preferred language for the best experience.<br>
-                    <small class="text-muted">Veuillez sélectionner votre langue préférée pour une meilleure expérience.</small></p>
-                    
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <button class="btn btn-outline-primary w-100 language-choice" data-lang="en" style="height: 80px;">
-                                <div class="d-flex flex-column align-items-center">
-                                    <span class="fs-1 mb-2">🇬🇧</span>
-                                    <strong>English</strong>
-                                </div>
-                            </button>
-                        </div>
-                        <div class="col-6">
-                            <button class="btn btn-outline-primary w-100 language-choice" data-lang="fr" style="height: 80px;">
-                                <div class="d-flex flex-column align-items-center">
-                                    <span class="fs-1 mb-2">🇫🇷</span>
-                                    <strong>Français</strong>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-5 mt-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4">
-                    <h5>Nkolo Pass</h5>
-                    <p class="text-muted" data-i18n="footer.tagline">Votre partenaire de voyage de confiance</p>
-                </div>
-                <div class="col-md-4">
-                    <h5 data-i18n="footer.about">À Propos</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#" class="text-muted" data-i18n="footer.about">À Propos</a></li>
-                        <li><a href="#" class="text-muted" data-i18n="footer.terms">Conditions Générales</a></li>
-                        <li><a href="#" class="text-muted" data-i18n="footer.privacy">Politique de Confidentialité</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5 data-i18n="footer.contact">Nous Contacter</h5>
-                    <p class="text-muted">
-                        <i class="fas fa-envelope me-2"></i> contact@nkolopass.cm<br>
-                        <i class="fas fa-phone me-2"></i> +237 6XX XXX XXX
-                    </p>
-                </div>
-            </div>
-            <hr class="my-4 bg-secondary">
-            <div class="text-center">
-                <p class="mb-0">© 2025 Nkolo Pass. <span data-i18n="footer.rights">Tous droits réservés</span></p>
-            </div>
-        </div>
-    </footer>
+    <div class="mt-5">
+      <h5 class="mb-3 text-secondary">{{ 'Popular this week' if current_language=='en' else 'Populaires cette semaine' }}</h5>
+      <div id="popularTrips" class="row g-3"></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const lang = "{{ current_language }}";
+  const routesApi = '/api/routes';
+  const routeOpsApi = '/api/route-operators';
+  const upcomingApi = '/api/upcoming-trips';
+
+  let allCities = { from: [], to: [] };
+
+  async function loadRoutes() {
+    const res = await fetch(routesApi);
+    allCities = await res.json();
+    updateCityDropdowns();
+  }
+
+  function updateCityDropdowns() {
+    const fromSel = document.getElementById('fromCity');
+    const toSel = document.getElementById('toCity');
+    const selectedFrom = fromSel.value;
+    const selectedTo = toSel.value;
     
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
+    // Update FROM dropdown (all cities available)
+    fromSel.innerHTML = '<option value="">'+ (lang==='en'?'Select origin':'Choisir origine') +'</option>' + 
+      allCities.from.map(c => `<option value="${c}" ${c === selectedFrom ? 'selected' : ''}>${c}</option>`).join('');
     
-    <script>
-        // Set today's date as default
-        document.getElementById('travelDate').valueAsDate = new Date();
-        
-        // Quick date functions
-        function setToday() {
-            document.getElementById('travelDate').valueAsDate = new Date();
-            
-            // Update button states
-            document.querySelectorAll('.btn-outline-secondary').forEach(btn => btn.classList.remove('active'));
-            document.querySelector('[onclick="setToday()"]').classList.add('active');
-        }
-        
-        function setTomorrow() {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            document.getElementById('travelDate').valueAsDate = tomorrow;
-            
-            // Update button states
-            document.querySelectorAll('.btn-outline-secondary').forEach(btn => btn.classList.remove('active'));
-            document.querySelector('[onclick="setTomorrow()"]').classList.add('active');
-        }
-        
-        // Language Selection Modal Logic
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get current language from URL
-            const currentPath = window.location.pathname;
-            const pathParts = currentPath.split('/');
-            const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
-            
-            // Check if this is first visit (no language in URL)
-            if (!pathParts[1] || (pathParts[1] !== 'en' && pathParts[1] !== 'fr')) {
-                // Show language selection modal
-                const languageModal = new bootstrap.Modal(document.getElementById('languageModal'));
-                languageModal.show();
-            } else {
-                // Apply current language from URL
-                if (typeof langManager !== 'undefined') {
-                    langManager.switchLanguage(currentLang);
-                }
-            }
-            
-            // Handle language selection
-            document.querySelectorAll('.language-choice').forEach(button => {
-                button.addEventListener('click', function() {
-                    const selectedLang = this.dataset.lang;
-                    
-                    // Redirect to language-specific URL
-                    const newPath = `/${selectedLang}/`;
-                    window.location.href = newPath;
-                });
-            });
-            
-            // Date input handling
-            const dateInput = document.getElementById('travelDate');
-            dateInput.addEventListener('change', function() {
-                const selectedDate = new Date(this.value);
-                const today = new Date();
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                
-                // Remove active state from all buttons
-                document.querySelectorAll('.btn-outline-secondary').forEach(btn => btn.classList.remove('active'));
-                
-                // Check if selected date matches today or tomorrow
-                if (selectedDate.toDateString() === today.toDateString()) {
-                    document.querySelector('[onclick="setToday()"]').classList.add('active');
-                } else if (selectedDate.toDateString() === tomorrow.toDateString()) {
-                    document.querySelector('[onclick="setTomorrow()"]').classList.add('active');
-                }
-            });
-            
-            // Set today as active by default
-            setToday();
-            
-            // Handle form submission with language prefix
-            document.getElementById('searchForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Get current language from URL
-                const pathParts = window.location.pathname.split('/');
-                const currentLang = (pathParts[1] === 'en' || pathParts[1] === 'fr') ? pathParts[1] : 'fr';
-                
-                // Build search URL with language prefix
-                const formData = new FormData(this);
-                const params = new URLSearchParams(formData);
-                const searchUrl = `/${currentLang}/search?${params.toString()}`;
-                
-                // Navigate to search results
-                window.location.href = searchUrl;
-            });
-        });
-        
-        // Store all cities globally
-        let allCities = [];
-        
-        // Load cities and routes
-        async function loadRoutesAndCities() {
-            try {
-                const response = await fetch('/api/routes');
-                const routes = await response.json();
-                
-                // Extract unique cities
-                const cities = new Set();
-                routes.forEach(route => {
-                    cities.add(route.origin);
-                    cities.add(route.destination);
-                });
-                
-                // Sort cities alphabetically and store globally
-                allCities = Array.from(cities).sort();
-                
-                // Initial population of dropdowns
-                updateCityDropdowns();
-                
-            } catch (error) {
-                console.error('Error loading routes:', error);
-            }
-        }
-        
-        // Update city dropdowns based on current selections
-        function updateCityDropdowns() {
-            const fromSelect = document.getElementById('fromCity');
-            const toSelect = document.getElementById('toCity');
-            const currentFrom = fromSelect.value;
-            const currentTo = toSelect.value;
-            
-            // Update FROM dropdown (exclude currently selected TO city)
-            fromSelect.innerHTML = `<option value="">${langManager.translate('search.from_placeholder')}</option>`;
-            allCities.forEach(city => {
-                if (city !== currentTo) {
-                    const selected = city === currentFrom ? 'selected' : '';
-                    fromSelect.innerHTML += `<option value="${city}" ${selected}>${city}</option>`;
-                }
-            });
-            
-            // Update TO dropdown (exclude currently selected FROM city)
-            toSelect.innerHTML = `<option value="">${langManager.translate('search.to_placeholder')}</option>`;
-            allCities.forEach(city => {
-                if (city !== currentFrom) {
-                    const selected = city === currentTo ? 'selected' : '';
-                    toSelect.innerHTML += `<option value="${city}" ${selected}>${city}</option>`;
-                }
-            });
-        }
-        
-        // Load operators based on selected route
-        async function loadOperators() {
-            const from = document.getElementById('fromCity').value;
-            const to = document.getElementById('toCity').value;
-            const operatorSelect = document.getElementById('operator');
-            
-            if (!from || !to) {
-                operatorSelect.innerHTML = `<option value="">${langManager.translate('search.select_route_first')}</option>`;
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/route-operators?from=${from}&to=${to}`);
-                const operators = await response.json();
-                
-                operatorSelect.innerHTML = `<option value="">${langManager.translate('search.select_operator')}</option>`;
-                operators.forEach(op => {
-                    operatorSelect.innerHTML += `<option value="${op.id}">${op.name}</option>`;
-                });
-                
-                if (operators.length === 0) {
-                    operatorSelect.innerHTML = `<option value="">No operators for this route</option>`;
-                }
-            } catch (error) {
-                console.error('Error loading operators:', error);
-            }
-        }
-        
-        // Event listeners
-        document.getElementById('fromCity').addEventListener('change', function() {
-            updateCityDropdowns();
-            loadOperators();
-        });
-        document.getElementById('toCity').addEventListener('change', function() {
-            updateCityDropdowns();
-            loadOperators();
-        });
-        
-        // Initialize language manager fallback
-        if (typeof langManager === 'undefined') {
-            window.langManager = {
-                translate: function(key) {
-                    const translations = {
-                        'search.select_route_first': 'Sélectionnez d\'abord un itinéraire',
-                        'search.select_operator': 'Choisir un opérateur',
-                        'search.from_placeholder': 'Ville de départ',
-                        'search.to_placeholder': 'Ville d\'arrivée'
-                    };
-                    return translations[key] || key;
-                }
-            };
-        }
-        
-        // Load upcoming trips
-        async function loadUpcomingTrips() {
-            try {
-                const response = await fetch('/api/upcoming-trips');
-                const trips = await response.json();
-                
-                const container = document.getElementById('upcomingTrips');
-                
-                if (trips.length === 0) {
-                    container.innerHTML = '<div class="col-12 text-center"><p class="text-muted">Aucun voyage disponible pour le moment</p></div>';
-                    return;
-                }
-                
-                container.innerHTML = trips.slice(0, 6).map(trip => `
-                    <div class="col-md-4">
-                        <div class="card h-100 shadow-sm">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="card-title mb-0">${trip.route}</h6>
-                                    <span class="badge bg-${trip.bus_type === 'vip' ? 'warning' : 'info'}">
-                                        ${trip.bus_type === 'vip' ? '⭐ VIP' : 'Regular'}
-                                    </span>
-                                </div>
-                                <p class="text-muted small mb-2">
-                                    <i class="fas fa-bus me-1"></i> ${trip.operator}
-                                </p>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div>
-                                        <i class="fas fa-clock me-1"></i>
-                                        <strong>${trip.departure_time}</strong>
-                                    </div>
-                                    <div>
-                                        <i class="fas fa-calendar me-1"></i>
-                                        ${trip.date}
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="text-primary fw-bold">${trip.price} FCFA</span>
-                                    <span class="small text-muted">
-                                        <i class="fas fa-chair me-1"></i>
-                                        ${trip.available_seats} places
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="card-footer bg-transparent">
-                                <a href="/search?from=${trip.from}&to=${trip.to}&date=${trip.departure_date}" 
-                                   class="btn btn-sm btn-outline-primary w-100">
-                                    Réserver <i class="fas fa-arrow-right ms-1"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Error loading upcoming trips:', error);
-            }
-        }
-        
-        // Initialize
-        loadRoutesAndCities();
-        loadUpcomingTrips();
-        
-        // Form validation
-        document.getElementById('searchForm').addEventListener('submit', function(e) {
-            const operator = document.getElementById('operator').value;
-            if (!operator) {
-                e.preventDefault();
-                alert(langManager.translate('search.select_operator'));
-            }
-        });
-    </script>
-</body>
-</html>
+    // Update TO dropdown (exclude selected FROM city)
+    const availableDestinations = allCities.to.filter(c => c !== selectedFrom);
+    toSel.innerHTML = '<option value="">'+ (lang==='en'?'Select destination':'Choisir destination') +'</option>' + 
+      availableDestinations.map(c => `<option value="${c}" ${c === selectedTo ? 'selected' : ''}>${c}</option>`).join('');
+    
+    // If selected TO city is same as FROM, clear it
+    if (selectedTo === selectedFrom) {
+      toSel.value = '';
+    }
+  }
+
+  async function loadOperators() {
+    const from = document.getElementById('fromCity').value;
+    const to = document.getElementById('toCity').value;
+    const opSel = document.getElementById('operatorSelect');
+    if (!from || !to) { 
+      opSel.innerHTML = '<option value="">'+(lang==='en'?'Select agency':'Sélectionner l\'agence')+'</option>'; 
+      return; 
+    }
+    const url = new URL(routeOpsApi, window.location.origin);
+    url.searchParams.set('from', from); 
+    url.searchParams.set('to', to);
+    const res = await fetch(url);
+    const ops = await res.json();
+    opSel.innerHTML = '<option value="">'+(lang==='en'?'Select agency':'Sélectionner l\'agence')+'</option>' +
+      ops.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+  }
+
+  async function loadUpcoming() {
+    try {
+      const res = await fetch(upcomingApi);
+      const trips = await res.json();
+      const list = document.getElementById('popularTrips');
+      list.innerHTML = trips.map(t => `
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="badge bg-light text-dark">${t.operator}</span>
+                <span class="text-primary fw-bold">${t.price} XAF</span>
+              </div>
+              <h6 class="fw-bold mb-1">${t.route}</h6>
+              <div class="text-secondary small">${t.date} · ${t.departure_time}</div>
+              <div class="text-secondary small">${t.available_seats} ${lang==='en'?'seats left':'places restantes'}</div>
+            </div>
+          </div>
+        </div>`).join('');
+    } catch (e) { /* ignore */ }
+  }
+
+  document.getElementById('fromCity').addEventListener('change', function() {
+    updateCityDropdowns();
+    loadOperators();
+  });
+  document.getElementById('toCity').addEventListener('change', loadOperators);
+
+  document.getElementById('searchForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const from = document.getElementById('fromCity').value;
+    const to = document.getElementById('toCity').value;
+    const date = document.getElementById('travelDate').value;
+    const operator = document.getElementById('operatorSelect').value;
+    
+    // Validate all required fields
+    if (!from || !to || !date) {
+      alert(lang === 'en' ? 'Please fill in all fields' : 'Veuillez remplir tous les champs');
+      return;
+    }
+    
+    // Prevent same origin and destination
+    if (from === to) {
+      alert(lang === 'en' ? 'Origin and destination cannot be the same' : 'L\'origine et la destination ne peuvent pas être identiques');
+      return;
+    }
+    
+    // Require agency selection
+    if (!operator) {
+      alert(lang === 'en' ? 'Please select an agency' : 'Veuillez sélectionner une agence');
+      return;
+    }
+    
+    // Check if date is not in the past
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      alert(lang === 'en' ? 'Cannot search for trips in the past' : 'Impossible de rechercher des voyages dans le passé');
+      return;
+    }
+    
+    const qp = new URLSearchParams({ from, to, date, operator });
+    window.location.href = `/${lang}/search?${qp.toString()}`;
+  });
+
+  // Ticket Search Form Handler
+  document.getElementById('ticketSearchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const searchInput = document.getElementById('searchInput').value.trim();
+    
+    if (!searchInput) {
+      alert(lang === 'en' ? 'Please enter phone number or email' : 'Veuillez entrer le numéro de téléphone ou l\'email');
+      return;
+    }
+    
+    // Redirect to my-bookings page with search parameter
+    window.location.href = `/${lang}/my-bookings?search=${encodeURIComponent(searchInput)}`;
+  });
+
+  // Booking Management Form Handler
+  document.getElementById('bookingManageForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const bookingRef = document.getElementById('bookingRef').value.trim();
+    const verifyInput = document.getElementById('verifyInput').value.trim();
+    
+    if (!bookingRef || !verifyInput) {
+      alert(lang === 'en' ? 'Please fill in all fields' : 'Veuillez remplir tous les champs');
+      return;
+    }
+    
+    // Redirect to dedicated booking management verification page
+    window.location.href = `/${lang}/manage-booking?ref=${encodeURIComponent(bookingRef)}&verify=${encodeURIComponent(verifyInput)}`;
+  });
+
+  // Initialize page when DOM is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    loadRoutes();
+    loadUpcoming();
+  });
+</script>
+{% endblock %}

@@ -80,6 +80,29 @@
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
+                                        <label class="form-label">Trip Interval (Minutes) *</label>
+                                        <input type="number" name="trip_interval_minutes" class="form-control" min="15" max="720" step="15" value="120" required>
+                                        <small class="form-text text-muted">
+                                            Time gap between consecutive trips in minutes<br>
+                                            <strong>Examples:</strong> 60 = 1 hour, 120 = 2 hours, 180 = 3 hours
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Generation Mode</label>
+                                        <select name="generation_mode" class="form-select">
+                                            <option value="interval" selected>Use Interval (Recommended)</option>
+                                            <option value="count">Use Trip Count</option>
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            <strong>Interval:</strong> Uses the minutes interval above<br>
+                                            <strong>Count:</strong> Uses "Trips per Day" field
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
                                         <label class="form-label">Regular Bus Price (FCFA) *</label>
                                         <input type="number" name="regular_seat_price" class="form-control" min="1000" step="100" value="5000" required>
                                         <small class="form-text text-muted">Price per seat for regular buses</small>

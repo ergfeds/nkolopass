@@ -1,0 +1,30 @@
+<!-- Payment Return Helper - Include this on payment pages -->
+<div class="alert alert-info mt-3" id="paymentReturnHelper" style="display: none;">
+  <div class="d-flex align-items-center">
+    <i class="fas fa-info-circle me-2"></i>
+    <div class="flex-grow-1">
+      <strong>{{ 'Left to approve payment?' if current_language=='en' else 'Parti approuver le paiement?' }}</strong><br>
+      <small>{{ 'Click here to check your payment status when you return' if current_language=='en' else 'Cliquez ici pour vérifier le statut de votre paiement à votre retour' }}</small>
+    </div>
+    <a href="{{ url_for('user.payment_status_check', lang=current_language, booking_id=booking.id) }}" class="btn btn-primary btn-sm">
+      <i class="fas fa-sync-alt me-1"></i>
+      {{ 'Check Status' if current_language=='en' else 'Vérifier Statut' }}
+    </a>
+  </div>
+</div>
+
+<script>
+// Show the helper after 30 seconds (when user might have left to approve payment)
+setTimeout(function() {
+  const helper = document.getElementById('paymentReturnHelper');
+  if (helper) {
+    helper.style.display = 'block';
+  }
+}, 30000);
+
+// Store booking ID in localStorage so we can check it later
+if (typeof(Storage) !== "undefined") {
+  localStorage.setItem('pendingBookingId', '{{ booking.id }}');
+  localStorage.setItem('pendingBookingTime', Date.now());
+}
+</script>

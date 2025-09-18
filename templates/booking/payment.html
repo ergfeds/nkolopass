@@ -1,425 +1,496 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paiement - Nkolo Pass</title>
+{% extends 'base.html' %}
+{% block title %}{{ 'Payment' if current_language=='en' else 'Paiement' }} — {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .payment-container {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+  }
+  
+  .payment-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+  }
+  
+  .payment-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+  }
+  
+  .payment-header h3 {
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+  }
+  
+  .payment-header p {
+    opacity: 0.9;
+    margin: 0;
+  }
+  
+  .booking-summary {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  }
+  
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+  }
+  
+  .summary-item:last-child {
+    border-bottom: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #667eea;
+  }
+  
+  .summary-label {
+    color: #64748b;
+    font-weight: 500;
+  }
+  
+  .summary-value {
+    font-weight: 600;
+    color: #1e293b;
+  }
+  
+  .selected-seats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .seat-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+  }
+  
+  .payment-form {
+    padding: 2rem;
+  }
+  
+  .payment-method {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .payment-method:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  }
+  
+  .payment-method.selected {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  }
+  
+  .method-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .method-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+  }
+  
+  .mtn-logo {
+    background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+  }
+  
+  .orange-logo {
+    background: linear-gradient(135deg, #ff6600 0%, #ff3300 100%);
+  }
+  
+  .method-name {
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+  }
+  
+  .method-description {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+  
+  .payment-instructions {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  
+  .instructions-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .instructions-title {
+    font-weight: 700;
+    color: #92400e;
+    margin: 0;
+  }
+  
+  .instruction-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .step-number {
+    background: #f59e0b;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  
+  .step-text {
+    color: #92400e;
+    font-weight: 500;
+    margin: 0;
+  }
+  
+  .dial-code {
+    background: #92400e;
+    color: #fef3c7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-weight: 700;
+  }
+  
+  .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  }
+  
+  .btn-payment {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 1rem 2rem;
+    font-weight: 700;
+    font-size: 1rem;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    width: 100%;
+  }
+  
+  .btn-payment:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    color: white;
+  }
+  
+  .btn-back {
+    background: transparent;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    color: #64748b;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-back:hover {
+    border-color: #667eea;
+    color: #667eea;
+    transform: translateY(-1px);
+  }
+  
+  @media (max-width: 768px) {
+    .payment-container {
+      padding: 1rem 0;
+    }
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    .payment-header {
+      padding: 1.5rem 1rem;
+    }
     
-    <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --dark-color: #1f2937;
-            --light-bg: #f3f4f6;
-        }
-        
-        body {
-            background-color: var(--light-bg);
-        }
-        
-        .payment-card {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-        
-        .payment-method {
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .payment-method:hover {
-            border-color: var(--primary-color);
-            background: #f0f4ff;
-        }
-        
-        .payment-method.selected {
-            border-color: var(--primary-color);
-            background: #f0f4ff;
-        }
-        
-        .payment-method input[type="radio"] {
-            margin-right: 10px;
-        }
-        
-        .payment-logo {
-            height: 30px;
-            margin-left: 10px;
-        }
-        
-        .secure-badge {
-            background: var(--secondary-color);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .pay-btn {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 18px;
-            width: 100%;
-            transition: all 0.3s;
-        }
-        
-        .pay-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
-        }
-        
-        .timer-warning {
-            background: #fef3c7;
-            border: 1px solid #fbbf24;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .countdown {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--danger-color);
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold text-primary" href="/">
-                <i class="fas fa-bus"></i> Nkolo Pass
-            </a>
-            <div class="ms-auto d-flex align-items-center gap-3">
-                <div class="lang-switcher" style="display: inline-flex; gap: 5px; background: white; border-radius: 25px; padding: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                    <button class="lang-btn active" data-lang-switch="fr" style="padding: 8px 16px; border: none; background: #2563eb; color: white; border-radius: 20px; font-weight: 600; cursor: pointer; transition: all 0.3s;">FR</button>
-                    <button class="lang-btn" data-lang-switch="en" style="padding: 8px 16px; border: none; background: transparent; color: #6b7280; border-radius: 20px; font-weight: 600; cursor: pointer; transition: all 0.3s;">EN</button>
+    .payment-form {
+      padding: 1.5rem 1rem;
+    }
+    
+    .booking-summary {
+      padding: 1rem;
+    }
+    
+    .method-header {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payment-container">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="payment-card">
+          <!-- Payment Header -->
+          <div class="payment-header">
+            <h3>
+              <i class="fa-solid fa-shield-halved me-2"></i>
+              {{ 'Secure Payment' if current_language=='en' else 'Paiement Sécurisé' }}
+            </h3>
+            <p>{{ 'Complete your bus ticket purchase' if current_language=='en' else 'Finalisez votre achat de billet de bus' }}</p>
+          </div>
+
+          <!-- Booking Summary -->
+          <div class="booking-summary">
+            <h5 class="mb-3">
+              <i class="fa-solid fa-receipt me-2"></i>
+              {{ 'Booking Summary' if current_language=='en' else 'Résumé de la Réservation' }}
+            </h5>
+            
+            <div class="summary-item">
+              <span class="summary-label">{{ 'Route' if current_language=='en' else 'Itinéraire' }}</span>
+              <span class="summary-value">{{ trip.route.origin }} → {{ trip.route.destination }}</span>
+            </div>
+            
+            <div class="summary-item">
+              <span class="summary-label">{{ 'Departure' if current_language=='en' else 'Départ' }}</span>
+              <span class="summary-value">{{ trip.departure_time.strftime('%d/%m/%Y à %H:%M') }}</span>
+            </div>
+            
+            <div class="summary-item">
+              <span class="summary-label">{{ 'Operator' if current_language=='en' else 'Opérateur' }}</span>
+              <span class="summary-value">{{ trip.operator.name }}</span>
+            </div>
+            
+            <div class="summary-item">
+              <span class="summary-label">{{ 'Selected Seats' if current_language=='en' else 'Places Sélectionnées' }}</span>
+              <div class="selected-seats">
+                {% for seat in selected_seats %}
+                  <span class="seat-badge">{{ seat }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            
+            <div class="summary-item">
+              <span class="summary-label">{{ 'Total Amount' if current_language=='en' else 'Montant Total' }}</span>
+              <span class="summary-value">{{ '%.0f'|format(total_amount) }} XAF</span>
+            </div>
+          </div>
+
+          <!-- Payment Form -->
+          <div class="payment-form">
+            <form method="post" id="paymentForm">
+              <h5 class="mb-3">{{ 'Choose Payment Method' if current_language=='en' else 'Choisir le Mode de Paiement' }}</h5>
+              
+              <!-- MTN Mobile Money -->
+              <div class="payment-method" data-method="MTN">
+                <div class="method-header">
+                  <div class="method-logo mtn-logo">MTN</div>
+                  <div>
+                    <h6 class="method-name">MTN Mobile Money</h6>
+                    <p class="method-description">{{ 'Pay with your MTN Mobile Money account' if current_language=='en' else 'Payez avec votre compte MTN Mobile Money' }}</p>
+                  </div>
                 </div>
-                <span class="secure-badge">
-                    <i class="fas fa-lock"></i> <span data-i18n="payment.secure">Paiement Sécurisé</span>
-                </span>
-            </div>
+              </div>
+
+              <!-- Orange Money -->
+              <div class="payment-method" data-method="ORANGE">
+                <div class="method-header">
+                  <div class="method-logo orange-logo">OM</div>
+                  <div>
+                    <h6 class="method-name">Orange Money</h6>
+                    <p class="method-description">{{ 'Pay with your Orange Money account' if current_language=='en' else 'Payez avec votre compte Orange Money' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <input type="hidden" name="payment_service" id="paymentService" required>
+
+              <!-- Phone Number Input -->
+              <div class="mb-4">
+                <label class="form-label fw-bold">{{ 'Mobile Number' if current_language=='en' else 'Numéro Mobile' }}</label>
+                <input type="tel" class="form-control form-control-lg" name="payment_phone" 
+                       placeholder="{{ '6XXXXXXXX' if current_language=='en' else '6XXXXXXXX' }}" 
+                       pattern="[6][0-9]{8}" required>
+                <div class="form-text">{{ 'Enter your 9-digit mobile number starting with 6' if current_language=='en' else 'Entrez votre numéro mobile à 9 chiffres commençant par 6' }}</div>
+              </div>
+
+              <!-- Payment Instructions -->
+              <div class="payment-instructions" id="paymentInstructions" style="display: none;">
+                <div class="instructions-header">
+                  <i class="fa-solid fa-info-circle"></i>
+                  <h6 class="instructions-title">{{ 'Payment Instructions' if current_language=='en' else 'Instructions de Paiement' }}</h6>
+                </div>
+                <div id="instructionContent"></div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="d-flex flex-column flex-md-row gap-3 align-items-center justify-content-between">
+                <a href="/{{ current_language }}/booking/seats?trip={{ trip.id }}" class="btn-back">
+                  <i class="fa-solid fa-arrow-left me-2"></i>
+                  {{ 'Back to Seats' if current_language=='en' else 'Retour aux Places' }}
+                </a>
+                <button type="submit" class="btn-payment">
+                  <i class="fa-solid fa-credit-card me-2"></i>
+                  {{ 'Pay' if current_language=='en' else 'Payer' }} {{ '%.0f'|format(total_amount) }} XAF
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-    </nav>
-    
-    <!-- Progress Bar -->
-    <div class="container mt-4">
-        <div class="progress" style="height: 30px;">
-            <div class="progress-bar bg-success" role="progressbar" style="width: 33%">
-                <span class="fw-bold">✓ Sélection</span>
-            </div>
-            <div class="progress-bar bg-success" role="progressbar" style="width: 33%">
-                <span class="fw-bold">✓ Détails</span>
-            </div>
-            <div class="progress-bar bg-primary" role="progressbar" style="width: 34%">
-                <span class="fw-bold">3. Paiement</span>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const paymentMethods = document.querySelectorAll('.payment-method');
+  const paymentServiceInput = document.getElementById('paymentService');
+  const instructionsDiv = document.getElementById('paymentInstructions');
+  const instructionContent = document.getElementById('instructionContent');
+  const lang = '{{ current_language }}';
+  
+  // Payment method selection
+  paymentMethods.forEach(method => {
+    method.addEventListener('click', function() {
+      // Remove selected class from all methods
+      paymentMethods.forEach(m => m.classList.remove('selected'));
+      
+      // Add selected class to clicked method
+      this.classList.add('selected');
+      
+      // Set hidden input value
+      const selectedMethod = this.dataset.method;
+      paymentServiceInput.value = selectedMethod;
+      
+      // Show instructions
+      showInstructions(selectedMethod);
+    });
+  });
+  
+  function showInstructions(method) {
+    instructionsDiv.style.display = 'block';
     
-    <!-- Main Content -->
-    <div class="container mt-4">
-        <!-- Timer Warning -->
-        <div class="timer-warning">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-clock me-2"></i>
-                    Votre réservation expire dans: <span class="countdown" id="countdown">10:00</span>
-                </div>
-                <small>Les sièges sont temporairement réservés</small>
-            </div>
+    if (method === 'MTN') {
+      instructionContent.innerHTML = lang === 'en' ? `
+        <div class="instruction-step">
+          <div class="step-number">1</div>
+          <p class="step-text">After clicking "Pay", you will receive a payment request on your phone</p>
         </div>
-        
-        <div class="row">
-            <!-- Payment Methods -->
-            <div class="col-md-8">
-                <div class="payment-card">
-                    <h5 class="mb-4">Choisissez votre mode de paiement</h5>
-                    
-                    <form method="POST" id="paymentForm">
-                        <!-- MTN Mobile Money -->
-                        <div class="payment-method selected" data-service="MTN">
-                            <label class="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <input type="radio" name="payment_service" value="MTN" checked>
-                                    <strong>MTN Mobile Money</strong>
-                                    <p class="mb-0 text-muted small mt-1">MTN MoMo - Cameroun</p>
-                                </div>
-                                <div>
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/New-mtn-logo.jpg" alt="MTN" class="payment-logo">
-                                </div>
-                            </label>
-                        </div>
-                        
-                        <!-- Orange Money -->
-                        <div class="payment-method" data-service="ORANGE">
-                            <label class="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <input type="radio" name="payment_service" value="ORANGE">
-                                    <strong>Orange Money</strong>
-                                    <p class="mb-0 text-muted small mt-1">Orange Money - Cameroun</p>
-                                </div>
-                                <div>
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Orange_logo.svg" alt="Orange" class="payment-logo">
-                                </div>
-                            </label>
-                        </div>
-                        
-                        <!-- Airtel Money -->
-                        <div class="payment-method" data-service="AIRTEL">
-                            <label class="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <input type="radio" name="payment_service" value="AIRTEL">
-                                    <strong>Airtel Money</strong>
-                                    <p class="mb-0 text-muted small mt-1">Airtel Money - Cameroun</p>
-                                </div>
-                                <div>
-                                    <i class="fas fa-mobile-alt" style="font-size: 30px; color: #e60000;"></i>
-                                </div>
-                            </label>
-                        </div>
-                        
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <small>Choisissez votre opérateur mobile money. Le paiement sera traité via MesomB.</small>
-                        </div>
-                    </form>
-                </div>
-                
-                <!-- Important Information -->
-                <div class="payment-card">
-                    <h6 class="mb-3">
-                        <i class="fas fa-info-circle text-primary me-2"></i>
-                        Informations Importantes
-                    </h6>
-                    <ul class="small">
-                        <li>Votre billet sera envoyé par email immédiatement après le paiement</li>
-                        <li>Vous pouvez également récupérer votre billet avec votre numéro de téléphone</li>
-                        <li>Présentez votre billet (imprimé ou sur mobile) lors de l'embarquement</li>
-                        <li>Les remboursements sont possibles jusqu'à 2 heures avant le départ</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <!-- Order Summary -->
-            <div class="col-md-4">
-                <div class="payment-card">
-                    <h5 class="mb-4">Récapitulatif de Commande</h5>
-                    
-                    <!-- Trip Details -->
-                    <div class="mb-3">
-                        <h6>{{ trip.route.origin }} → {{ trip.route.destination }}</h6>
-                        <p class="text-muted small mb-1">
-                            <i class="fas fa-calendar me-1"></i>
-                            {{ trip.departure_time.strftime('%d %B %Y') }}
-                        </p>
-                        <p class="text-muted small mb-1">
-                            <i class="fas fa-clock me-1"></i>
-                            Départ: {{ trip.departure_time.strftime('%H:%M') }}
-                        </p>
-                        <p class="text-muted small">
-                            <i class="fas fa-bus me-1"></i>
-                            {{ trip.operator.name }}
-                        </p>
-                    </div>
-                    
-                    <hr>
-                    
-                    <!-- Passenger Info -->
-                    <div class="mb-3">
-                        <h6>Passager Principal</h6>
-                        <p class="small mb-1">{{ passenger_details.name }}</p>
-                        <p class="small mb-1">{{ passenger_details.email }}</p>
-                        <p class="small">{{ passenger_details.phone }}</p>
-                    </div>
-                    
-                    <!-- Seats -->
-                    <div class="mb-3">
-                        <h6>Sièges</h6>
-                        <div>
-                            {% for seat in selected_seats %}
-                            <span class="badge bg-primary me-1">Siège {{ seat }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <hr>
-                    
-                    <!-- Price Breakdown -->
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between small">
-                            <span>{{ selected_seats|length }} siège(s) × {{ trip.seat_price }} FCFA</span>
-                            <span>{{ total_amount }} FCFA</span>
-                        </div>
-                        <div class="d-flex justify-content-between small">
-                            <span>Frais de service</span>
-                            <span>0 FCFA</span>
-                        </div>
-                    </div>
-                    
-                    <hr>
-                    
-                    <!-- Total -->
-                    <div class="d-flex justify-content-between mb-4">
-                        <h5>Total à Payer</h5>
-                        <h5 class="text-primary">{{ "{:,.0f}".format(total_amount) }} FCFA</h5>
-                    </div>
-                    
-                    <div class="alert alert-info">
-                        <i class="fas fa-mobile-alt me-2"></i>
-                        Une demande de paiement sera envoyée directement à votre téléphone mobile.
-                        Veuillez l'approuver sur votre application mobile money pour finaliser votre réservation.
-                    </div>
-                    
-                    <h5 class="card-title">Paiement Mobile Money</h5>
-                    <p>Entrez votre numéro mobile money pour recevoir la demande de paiement:</p>
-                    
-                    <div class="mb-3">
-                        <label for="payment_phone" class="form-label">
-                            <i class="fas fa-mobile-alt"></i> Numéro Mobile Money
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text">+237</span>
-                            <input type="tel" class="form-control" id="payment_phone" name="payment_phone" 
-                                   placeholder="6XXXXXXXX" pattern="6[0-9]{8}" maxlength="9" required>
-                        </div>
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i> 
-                            Fonctionne avec MTN Mobile Money, Orange Money et Airtel Money
-                        </small>
-                    </div>
-                    
-                    <!-- Pay Button -->
-                    <button type="submit" form="paymentForm" class="pay-btn">
-                        <i class="fas fa-lock me-2"></i>
-                        Payer {{ "{:,.0f}".format(total_amount) }} FCFA
-                    </button>
-                    
-                    <!-- Security Note -->
-                    <div class="text-center mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-shield-alt me-1"></i>
-                            Paiement 100% sécurisé
-                        </small>
-                    </div>
-                </div>
-            </div>
+        <div class="instruction-step">
+          <div class="step-number">2</div>
+          <p class="step-text">Dial <span class="dial-code">*126#</span> on your MTN line to check your balance</p>
         </div>
-    </div>
-    
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Auto-fill phone number from passenger details if available
-        document.addEventListener('DOMContentLoaded', function() {
-            const phoneInput = document.getElementById('payment_phone');
-            const passengerPhone = '{{ passenger_details.phone if passenger_details else "" }}';
-            
-            if (passengerPhone && phoneInput) {
-                // Extract just the number part (remove +237 or 237 prefix)
-                let cleanPhone = passengerPhone.replace(/^\+?237/, '');
-                if (cleanPhone.length === 9 && cleanPhone.startsWith('6')) {
-                    phoneInput.value = cleanPhone;
-                }
-            }
-        });
-    </script>
-    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
-    
-    <script>
-        // Payment service selection
-        document.querySelectorAll('.payment-method').forEach(method => {
-            method.addEventListener('click', function() {
-                document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
-                this.classList.add('selected');
-                this.querySelector('input[type="radio"]').checked = true;
-                
-                // Update payment info based on selected service
-                const service = this.dataset.service;
-                updatePaymentInfo(service);
-            });
-        });
-        
-        function updatePaymentInfo(service) {
-            const phoneInput = document.getElementById('payment_phone');
-            const serviceText = document.querySelector('.text-muted small');
-            
-            switch(service) {
-                case 'MTN':
-                    phoneInput.placeholder = '6XXXXXXXX (MTN)';
-                    break;
-                case 'ORANGE':
-                    phoneInput.placeholder = '6XXXXXXXX (Orange)';
-                    break;
-                case 'AIRTEL':
-                    phoneInput.placeholder = '6XXXXXXXX (Airtel)';
-                    break;
-            }
-        }
-        
-        // Countdown timer
-        let timeLeft = 600; // 10 minutes in seconds
-        const countdownEl = document.getElementById('countdown');
-        
-        const timer = setInterval(() => {
-            timeLeft--;
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            countdownEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            
-            if (timeLeft <= 60) {
-                countdownEl.style.color = '#ef4444';
-            }
-            
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                alert('Votre session a expiré. Veuillez recommencer.');
-                window.location.href = '/';
-            }
-        }, 1000);
-        
-        // Form submission
-        document.getElementById('paymentForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const paymentService = document.querySelector('input[name="payment_service"]:checked').value;
-            const phoneNumber = document.getElementById('payment_phone').value;
-            
-            // Validate phone number
-            if (!phoneNumber || !phoneNumber.match(/^6[0-9]{8}$/)) {
-                alert('Veuillez entrer un numéro de téléphone valide (format: 6XXXXXXXX)');
-                return;
-            }
-            
-            // Show loading
-            const btn = document.querySelector('.pay-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Traitement en cours...';
-            btn.disabled = true;
-            
-            // Submit the form
-            this.submit();
-        });
-    </script>
-</body>
-</html>
+        <div class="instruction-step">
+          <div class="step-number">3</div>
+          <p class="step-text">When prompted, enter your MTN Mobile Money PIN to approve the transaction</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">4</div>
+          <p class="step-text">You will receive a confirmation SMS once payment is successful</p>
+        </div>
+      ` : `
+        <div class="instruction-step">
+          <div class="step-number">1</div>
+          <p class="step-text">Après avoir cliqué sur "Payer", vous recevrez une demande de paiement sur votre téléphone</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">2</div>
+          <p class="step-text">Composez <span class="dial-code">*126#</span> sur votre ligne MTN pour vérifier votre solde</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">3</div>
+          <p class="step-text">Quand demandé, entrez votre code PIN MTN Mobile Money pour approuver la transaction</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">4</div>
+          <p class="step-text">Vous recevrez un SMS de confirmation une fois le paiement réussi</p>
+        </div>
+      `;
+    } else if (method === 'ORANGE') {
+      instructionContent.innerHTML = lang === 'en' ? `
+        <div class="instruction-step">
+          <div class="step-number">1</div>
+          <p class="step-text">After clicking "Pay", you will receive a payment request on your phone</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">2</div>
+          <p class="step-text">Dial <span class="dial-code">#144#</span> on your Orange line to check your balance</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">3</div>
+          <p class="step-text">When prompted, enter your Orange Money PIN to approve the transaction</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">4</div>
+          <p class="step-text">You will receive a confirmation SMS once payment is successful</p>
+        </div>
+      ` : `
+        <div class="instruction-step">
+          <div class="step-number">1</div>
+          <p class="step-text">Après avoir cliqué sur "Payer", vous recevrez une demande de paiement sur votre téléphone</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">2</div>
+          <p class="step-text">Composez <span class="dial-code">#144#</span> sur votre ligne Orange pour vérifier votre solde</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">3</div>
+          <p class="step-text">Quand demandé, entrez votre code PIN Orange Money pour approuver la transaction</p>
+        </div>
+        <div class="instruction-step">
+          <div class="step-number">4</div>
+          <p class="step-text">Vous recevrez un SMS de confirmation une fois le paiement réussi</p>
+        </div>
+      `;
+    }
+  }
+});
+</script>
+{% endblock %}

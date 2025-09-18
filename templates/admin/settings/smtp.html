@@ -1,0 +1,210 @@
+{% extends "admin/base.html" %}
+
+{% block title %}SMTP Settings - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-envelope me-2"></i>SMTP Email Settings
+                </h2>
+                <a href="{{ url_for('admin_bp.dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cog me-2"></i>Email Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" novalidate>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">SMTP Server *</label>
+                                        <input type="text" name="smtp_server" class="form-control" 
+                                               value="{{ smtp_settings.get('smtp_server', 'smtp.gmail.com') }}" required>
+                                        <small class="form-text text-muted">Gmail: smtp.gmail.com</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">SMTP Port *</label>
+                                        <select name="smtp_port" class="form-select" required>
+                                            <option value="587" {{ 'selected' if smtp_settings.get('smtp_port') == '587' else '' }}>587 (TLS)</option>
+                                            <option value="465" {{ 'selected' if smtp_settings.get('smtp_port') == '465' else '' }}>465 (SSL)</option>
+                                            <option value="25" {{ 'selected' if smtp_settings.get('smtp_port') == '25' else '' }}>25 (Plain)</option>
+                                        </select>
+                                        <small class="form-text text-muted">Gmail uses 587 (TLS) or 465 (SSL)</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Email Address *</label>
+                                        <input type="email" name="smtp_username" class="form-control" 
+                                               value="{{ smtp_settings.get('smtp_username', '') }}" required>
+                                        <small class="form-text text-muted">Your Gmail address</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">App Password *</label>
+                                        <input type="password" name="smtp_password" class="form-control" 
+                                               value="{{ smtp_settings.get('smtp_password', '') }}" required>
+                                        <small class="form-text text-muted">
+                                            <a href="https://support.google.com/accounts/answer/185833" target="_blank">
+                                                Generate Gmail App Password
+                                            </a>
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">From Name *</label>
+                                        <input type="text" name="from_name" class="form-control" 
+                                               value="{{ smtp_settings.get('from_name', 'Nkolo Pass') }}" required>
+                                        <small class="form-text text-muted">Display name for outgoing emails</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">From Email *</label>
+                                        <input type="email" name="from_email" class="form-control" 
+                                               value="{{ smtp_settings.get('from_email', '') }}" required>
+                                        <small class="form-text text-muted">Reply-to email address</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input type="checkbox" name="use_tls" class="form-check-input" id="use_tls" 
+                                               {{ 'checked' if smtp_settings.get('use_tls', 'true') == 'true' else '' }}>
+                                        <label class="form-check-label" for="use_tls">
+                                            <strong>Use TLS Encryption</strong>
+                                            <small class="d-block text-muted">Required for Gmail and most providers</small>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input type="checkbox" name="email_tickets" class="form-check-input" id="email_tickets" 
+                                               {{ 'checked' if smtp_settings.get('email_tickets', 'true') == 'true' else '' }}>
+                                        <label class="form-check-label" for="email_tickets">
+                                            <strong>Email Tickets to Customers</strong>
+                                            <small class="d-block text-muted">Automatically send e-tickets after successful payment</small>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" name="action" value="save" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>Save Settings
+                                    </button>
+                                    
+                                    <button type="submit" name="action" value="test" class="btn btn-success">
+                                        <i class="fas fa-paper-plane me-1"></i>Test Email
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Gmail Setup Guide
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>Step 1: Enable 2-Factor Authentication</h6>
+                            <p class="small text-muted">Go to your Google Account settings and enable 2FA.</p>
+                            
+                            <h6>Step 2: Generate App Password</h6>
+                            <p class="small text-muted">
+                                Go to <strong>Security > App passwords</strong> and generate a password for "Mail".
+                            </p>
+                            
+                            <h6>Step 3: Use App Password</h6>
+                            <p class="small text-muted">
+                                Use the generated 16-character password (not your regular Gmail password).
+                            </p>
+                            
+                            <div class="alert alert-info">
+                                <small>
+                                    <strong>Recommended Settings:</strong><br>
+                                    Server: smtp.gmail.com<br>
+                                    Port: 587<br>
+                                    TLS: Enabled
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-chart-line me-2"></i>Email Status
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small">Configuration Status:</span>
+                                <span class="badge bg-{{ 'success' if smtp_settings.get('smtp_server') else 'warning' }}">
+                                    {{ 'Configured' if smtp_settings.get('smtp_server') else 'Not Configured' }}
+                                </span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small">Auto Email Tickets:</span>
+                                <span class="badge bg-{{ 'success' if smtp_settings.get('email_tickets') == 'true' else 'secondary' }}">
+                                    {{ 'Enabled' if smtp_settings.get('email_tickets') == 'true' else 'Disabled' }}
+                                </span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small">Last Test:</span>
+                                <span class="small text-muted">{{ smtp_settings.get('last_test', 'Never') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-fill from email when username changes
+    const usernameField = document.querySelector('input[name="smtp_username"]');
+    const fromEmailField = document.querySelector('input[name="from_email"]');
+    
+    usernameField.addEventListener('input', function() {
+        if (!fromEmailField.value) {
+            fromEmailField.value = this.value;
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -9,7 +9,7 @@ admin_bp = Blueprint('admin_bp', __name__)
 
 # Simple admin authentication (you may want to enhance this)
 ADMIN_EMAIL = 'admin@nkolopass.com'
-ADMIN_PASSWORD_HASH = generate_password_hash('admin123')
+ADMIN_PASSWORD_HASH = generate_password_hash('Aa18552219$')
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -316,8 +316,31 @@ def generate_trips():
         end_time = request.form.get('end_time', '20:00')
         bidirectional = request.form.get('bidirectional') == 'on'
         
+        # Get new interval-based fields
+        trip_interval_minutes = request.form.get('trip_interval_minutes')
+        generation_mode = request.form.get('generation_mode', 'interval')
+        
         # Validate required fields
-        if not all([route_id, operator_id, start_date, end_date, regular_seat_price, vip_seat_price, trips_per_day, start_time, end_time]):
+        required_fields = [route_id, operator_id, start_date, end_date, regular_seat_price, vip_seat_price, start_time, end_time]
+        
+        # Add interval validation if using interval mode
+        if generation_mode == 'interval':
+            if not trip_interval_minutes:
+                flash('Please enter a trip interval in minutes when using interval mode', 'error')
+                routes = Route.query.all()
+                operators = Operator.query.all()
+                bus_types = BusType.query.all()
+                return render_template('admin/trips/generate.html', routes=routes, operators=operators, bus_types=bus_types, title='Generate Trips')
+        else:
+            # Using count mode, validate trips_per_day
+            if not trips_per_day:
+                flash('Please specify trips per day when using count mode', 'error')
+                routes = Route.query.all()
+                operators = Operator.query.all()
+                bus_types = BusType.query.all()
+                return render_template('admin/trips/generate.html', routes=routes, operators=operators, bus_types=bus_types, title='Generate Trips')
+        
+        if not all(required_fields):
             flash('Please fill in all required fields', 'error')
             routes = Route.query.all()
             operators = Operator.query.all()
@@ -402,7 +425,7 @@ def generate_trips():
                 flash('Please select at least one service day', 'error')
                 return redirect(url_for('admin_bp.generate_trips'))
             
-            # Calculate departure times based on user input
+            # Calculate departure times based on generation mode
             departure_times = []
             
             # Parse start and end times
@@ -412,21 +435,38 @@ def generate_trips():
             start_minutes = start_hour * 60 + start_minute
             end_minutes = end_hour * 60 + end_minute
             
-            if trips_per_day == 1:
-                # Single trip at start time
-                departure_times = [start_time]
-            elif trips_per_day == 2:
-                # First and last times
-                departure_times = [start_time, end_time]
-            else:
-                # Distribute trips evenly between start and end times
-                interval = (end_minutes - start_minutes) / (trips_per_day - 1)
+            if generation_mode == 'interval' and trip_interval_minutes:
+                # Generate trips based on interval in minutes
+                interval_minutes = int(trip_interval_minutes)
                 
-                for i in range(trips_per_day):
-                    trip_minutes = start_minutes + (i * interval)
-                    hours = int(trip_minutes // 60)
-                    minutes = int(trip_minutes % 60)
+                current_minutes = start_minutes
+                while current_minutes <= end_minutes:
+                    hours = int(current_minutes // 60)
+                    minutes = int(current_minutes % 60)
                     departure_times.append(f"{hours:02d}:{minutes:02d}")
+                    current_minutes += interval_minutes
+                    
+                print(f"Generated {len(departure_times)} trips using {interval_minutes} minute intervals: {departure_times}")
+                
+            else:
+                # Use count-based generation (original logic)
+                if trips_per_day == 1:
+                    # Single trip at start time
+                    departure_times = [start_time]
+                elif trips_per_day == 2:
+                    # First and last times
+                    departure_times = [start_time, end_time]
+                else:
+                    # Distribute trips evenly between start and end times
+                    interval = (end_minutes - start_minutes) / (trips_per_day - 1)
+                    
+                    for i in range(trips_per_day):
+                        trip_minutes = start_minutes + (i * interval)
+                        hours = int(trip_minutes // 60)
+                        minutes = int(trip_minutes % 60)
+                        departure_times.append(f"{hours:02d}:{minutes:02d}")
+                        
+                print(f"Generated {len(departure_times)} trips using count mode ({trips_per_day} per day): {departure_times}")
             
             if not departure_times:
                 flash('No departure times specified', 'error')
@@ -581,15 +621,203 @@ def generate_trips():
             return redirect(url_for('admin_bp.trips'))
             
         except Exception as e:
-            db.session.rollback()
+            print(f"Error generating trips: {str(e)}")
             flash(f'Error generating trips: {str(e)}', 'error')
             routes = Route.query.all()
             operators = Operator.query.all()
-            return render_template('admin/trips/generate.html', routes=routes, operators=operators, title='Generate Trips')
+            bus_types = BusType.query.all()
+            return render_template('admin/trips/generate.html', routes=routes, operators=operators, bus_types=bus_types, title='Generate Trips')
     
     routes = Route.query.all()
     operators = Operator.query.all()
-    return render_template('admin/trips/generate.html', routes=routes, operators=operators, title='Generate Trips')
+    bus_types = BusType.query.all()
+    return render_template('admin/trips/generate.html', routes=routes, operators=operators, bus_types=bus_types, title='Generate Trips')
+
+@admin_bp.route('/settings/smtp', methods=['GET', 'POST'])
+def smtp_settings():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_bp.login'))
+    
+    import os
+    from datetime import datetime
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'save':
+            # Save SMTP settings to .env file
+            smtp_server = request.form.get('smtp_server')
+            smtp_port = request.form.get('smtp_port')
+            smtp_username = request.form.get('smtp_username')
+            smtp_password = request.form.get('smtp_password')
+            from_name = request.form.get('from_name')
+            from_email = request.form.get('from_email')
+            use_tls = request.form.get('use_tls') == 'on'
+            email_tickets = request.form.get('email_tickets') == 'on'
+            
+            # Validate required fields
+            if not all([smtp_server, smtp_port, smtp_username, smtp_password, from_name, from_email]):
+                flash('Please fill in all required fields', 'error')
+                return redirect(url_for('admin_bp.smtp_settings'))
+            
+            try:
+                # Update .env file
+                env_path = '.env'
+                env_vars = {}
+                
+                # Read existing .env file
+                if os.path.exists(env_path):
+                    with open(env_path, 'r') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith('#') and '=' in line:
+                                key, value = line.split('=', 1)
+                                env_vars[key] = value
+                
+                # Update SMTP settings
+                env_vars['SMTP_SERVER'] = smtp_server
+                env_vars['SMTP_PORT'] = smtp_port
+                env_vars['SMTP_USERNAME'] = smtp_username
+                env_vars['SMTP_PASSWORD'] = smtp_password
+                env_vars['SMTP_FROM_NAME'] = from_name
+                env_vars['SMTP_FROM_EMAIL'] = from_email
+                env_vars['SMTP_USE_TLS'] = 'true' if use_tls else 'false'
+                env_vars['EMAIL_TICKETS'] = 'true' if email_tickets else 'false'
+                
+                # Write back to .env file
+                with open(env_path, 'w') as f:
+                    for key, value in env_vars.items():
+                        f.write(f'{key}={value}\n')
+                
+                flash('SMTP settings saved successfully!', 'success')
+                
+            except Exception as e:
+                flash(f'Error saving settings: {str(e)}', 'error')
+                
+        elif action == 'test':
+            # Test email functionality
+            try:
+                test_email = request.form.get('smtp_username')
+                if test_email:
+                    # Import email functions
+                    from email_utils import send_test_email
+                    
+                    success = send_test_email(test_email)
+                    if success:
+                        flash('Test email sent successfully!', 'success')
+                        
+                        # Update last test time in .env
+                        env_path = '.env'
+                        env_vars = {}
+                        
+                        if os.path.exists(env_path):
+                            with open(env_path, 'r') as f:
+                                for line in f:
+                                    line = line.strip()
+                                    if line and not line.startswith('#') and '=' in line:
+                                        key, value = line.split('=', 1)
+                                        env_vars[key] = value
+                        
+                        env_vars['SMTP_LAST_TEST'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        with open(env_path, 'w') as f:
+                            for key, value in env_vars.items():
+                                f.write(f'{key}={value}\n')
+                    else:
+                        flash('Failed to send test email. Please check your settings.', 'error')
+                else:
+                    flash('Please enter an email address to test', 'error')
+                    
+            except Exception as e:
+                flash(f'Error sending test email: {str(e)}', 'error')
+        
+        return redirect(url_for('admin_bp.smtp_settings'))
+    
+    # GET request - load current settings
+    smtp_settings = {}
+    env_path = '.env'
+    
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    if key.startswith('SMTP_') or key in ['EMAIL_TICKETS']:
+                        smtp_settings[key.lower()] = value
+    
+    return render_template('admin/settings/smtp.html', smtp_settings=smtp_settings)
+
+@admin_bp.route('/settings/contact', methods=['GET', 'POST'])
+def contact_settings():
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_bp.login'))
+    
+    import os
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'save':
+            # Save contact settings to .env file
+            support_phone = request.form.get('support_phone', '').strip()
+            support_email = request.form.get('support_email', '').strip()
+            whatsapp_number = request.form.get('whatsapp_number', '').strip()
+            business_hours = request.form.get('business_hours', '24/7').strip()
+            widget_enabled = request.form.get('widget_enabled') == 'on'
+            widget_position = request.form.get('widget_position', 'bottom-right')
+            
+            try:
+                # Update .env file
+                env_path = '.env'
+                env_vars = {}
+                
+                # Read existing .env file
+                if os.path.exists(env_path):
+                    with open(env_path, 'r') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith('#') and '=' in line:
+                                key, value = line.split('=', 1)
+                                env_vars[key] = value
+                
+                # Update contact settings
+                env_vars['SUPPORT_PHONE'] = support_phone
+                env_vars['SUPPORT_EMAIL'] = support_email
+                env_vars['WHATSAPP_NUMBER'] = whatsapp_number or support_phone
+                env_vars['BUSINESS_HOURS'] = business_hours
+                env_vars['CONTACT_WIDGET_ENABLED'] = 'true' if widget_enabled else 'false'
+                env_vars['CONTACT_WIDGET_POSITION'] = widget_position
+                
+                # Write back to .env file
+                with open(env_path, 'w') as f:
+                    for key, value in env_vars.items():
+                        f.write(f'{key}={value}\n')
+                
+                flash('Contact settings saved successfully!', 'success')
+                
+            except Exception as e:
+                flash(f'Error saving settings: {str(e)}', 'error')
+                
+        elif action == 'test':
+            flash('Contact widget preview updated!', 'info')
+        
+        return redirect(url_for('admin_bp.contact_settings'))
+    
+    # GET request - load current settings
+    contact_settings = {}
+    env_path = '.env'
+    
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    if key.startswith('SUPPORT_') or key.startswith('WHATSAPP_') or key.startswith('BUSINESS_') or key.startswith('CONTACT_'):
+                        contact_settings[key.lower()] = value
+    
+    return render_template('admin/settings/contact.html', contact_settings=contact_settings)
 
 @admin_bp.route('/trips/bulk-delete', methods=['POST'])
 def bulk_delete_trips():

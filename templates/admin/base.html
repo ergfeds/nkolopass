@@ -91,6 +91,19 @@
                             <i class="fas fa-ticket-alt"></i> Bookings
                         </a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_bp.smtp_settings') }}">
+                                <i class="fas fa-envelope"></i> Email Settings
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_bp.contact_settings') }}">
+                                <i class="fas fa-phone"></i> Contact Settings
+                            </a></li>
+                        </ul>
+                    </li>
                 </ul>
                 
                 <ul class="navbar-nav">

@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Payment Status' if current_language=='en' else 'Statut du Paiement' }} - {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .status-container {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .status-card {
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: none;
+  }
+  
+  .status-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 2rem;
+  }
+  
+  .status-pending {
+    background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+    color: #e17055;
+    animation: pulse 2s infinite;
+  }
+  
+  .status-success {
+    background: linear-gradient(135deg, #00b894, #00cec9);
+    color: white;
+  }
+  
+  .status-failed {
+    background: linear-gradient(135deg, #e17055, #d63031);
+    color: white;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .countdown {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 1rem;
+  }
+  
+  .progress-bar {
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="status-container">
+    <div class="card status-card p-4">
+      <div class="card-body">
+        <!-- Pending Status -->
+        <div id="pendingStatus" class="status-section">
+          <div class="status-icon status-pending">
+            <i class="fas fa-clock"></i>
+          </div>
+          <h4 class="mb-3">{{ 'Checking Payment Status...' if current_language=='en' else 'Vérification du Statut de Paiement...' }}</h4>
+          <p class="text-muted mb-4">
+            {{ 'Please wait while we verify your payment with the mobile money provider.' if current_language=='en' else 'Veuillez patienter pendant que nous vérifions votre paiement auprès du fournisseur de mobile money.' }}
+          </p>
+          
+          <div class="spinner"></div>
+          
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+          </div>
+          
+          <div class="countdown" id="countdown">
+            {{ 'Checking...' if current_language=='en' else 'Vérification...' }}
+          </div>
+          
+          <div class="mt-4">
+            <button class="btn btn-primary me-2" onclick="checkNow()">
+              <i class="fas fa-sync-alt me-1"></i>
+              {{ 'Check Now' if current_language=='en' else 'Vérifier Maintenant' }}
+            </button>
+            <button class="btn btn-outline-secondary" onclick="goBack()">
+              <i class="fas fa-arrow-left me-1"></i>
+              {{ 'Go Back' if current_language=='en' else 'Retour' }}
+            </button>
+          </div>
+        </div>
+        
+        <!-- Success Status -->
+        <div id="successStatus" class="status-section d-none">
+          <div class="status-icon status-success">
+            <i class="fas fa-check"></i>
+          </div>
+          <h4 class="mb-3 text-success">{{ 'Payment Successful!' if current_language=='en' else 'Paiement Réussi!' }}</h4>
+          <p class="text-muted mb-4">
+            {{ 'Your booking has been confirmed. Redirecting to your ticket...' if current_language=='en' else 'Votre réservation a été confirmée. Redirection vers votre billet...' }}
+          </p>
+          
+          <div class="spinner"></div>
+          
+          <div class="mt-4">
+            <a href="#" id="ticketLink" class="btn btn-success">
+              <i class="fas fa-ticket-alt me-1"></i>
+              {{ 'View Ticket' if current_language=='en' else 'Voir le Billet' }}
+            </a>
+          </div>
+        </div>
+        
+        <!-- Failed Status -->
+        <div id="failedStatus" class="status-section d-none">
+          <div class="status-icon status-failed">
+            <i class="fas fa-times"></i>
+          </div>
+          <h4 class="mb-3 text-danger">{{ 'Payment Failed' if current_language=='en' else 'Paiement Échoué' }}</h4>
+          <p class="text-muted mb-4" id="errorMessage">
+            {{ 'There was an issue with your payment. Please try again.' if current_language=='en' else 'Il y a eu un problème avec votre paiement. Veuillez réessayer.' }}
+          </p>
+          
+          <div class="mt-4">
+            <button class="btn btn-primary me-2" onclick="retryPayment()">
+              <i class="fas fa-redo me-1"></i>
+              {{ 'Try Again' if current_language=='en' else 'Réessayer' }}
+            </button>
+            <button class="btn btn-outline-secondary" onclick="goBack()">
+              <i class="fas fa-arrow-left me-1"></i>
+              {{ 'Go Back' if current_language=='en' else 'Retour' }}
+            </button>
+          </div>
+        </div>
+        
+        <!-- Booking Details -->
+        <div class="mt-4 p-3 bg-light rounded" id="bookingDetails">
+          <h6 class="mb-2">{{ 'Booking Details' if current_language=='en' else 'Détails de la Réservation' }}</h6>
+          <div class="row text-start">
+            <div class="col-6">
+              <small class="text-muted">{{ 'Reference' if current_language=='en' else 'Référence' }}:</small><br>
+              <strong id="bookingRef">{{ booking.booking_reference if booking else 'N/A' }}</strong>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">{{ 'Amount' if current_language=='en' else 'Montant' }}:</small><br>
+              <strong id="bookingAmount">{{ booking.total_amount|int if booking else '0' }} XAF</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const lang = "{{ current_language }}";
+const bookingId = "{{ booking.id if booking else 'null' }}";
+let checkInterval;
+let progressInterval;
+let checkCount = 0;
+const maxChecks = 30; // Check for 5 minutes (30 checks * 10 seconds)
+
+function showStatus(status) {
+  document.querySelectorAll('.status-section').forEach(el => el.classList.add('d-none'));
+  document.getElementById(status + 'Status').classList.remove('d-none');
+}
+
+function updateProgress() {
+  const progress = Math.min((checkCount / maxChecks) * 100, 100);
+  document.getElementById('progressFill').style.width = progress + '%';
+  
+  const remaining = Math.max(maxChecks - checkCount, 0);
+  const timeRemaining = Math.ceil(remaining * 10 / 60); // Convert to minutes
+  
+  document.getElementById('countdown').textContent = 
+    lang === 'en' 
+      ? `Checking... ${remaining} attempts remaining (${timeRemaining}m)`
+      : `Vérification... ${remaining} tentatives restantes (${timeRemaining}m)`;
+}
+
+async function checkPaymentStatus() {
+  if (!bookingId || bookingId === "null") {
+    console.error('No booking ID provided');
+    return;
+  }
+  
+  checkCount++;
+  updateProgress();
+  
+  try {
+    const response = await fetch(`/api/booking-status/${bookingId}`);
+    const data = await response.json();
+    
+    console.log('Payment status check:', data);
+    
+    if (data.is_confirmed) {
+      // Payment successful
+      clearInterval(checkInterval);
+      clearInterval(progressInterval);
+      showStatus('success');
+      
+      // Set ticket link
+      document.getElementById('ticketLink').href = 
+        `/${lang}/booking/confirmation/${bookingId}`;
+      
+      // Auto-redirect after 3 seconds
+      setTimeout(() => {
+        window.location.href = `/${lang}/booking/confirmation/${bookingId}`;
+      }, 3000);
+      
+    } else if (data.booking_status === 'failed' || data.mesomb_status === 'FAILED') {
+      // Payment failed
+      clearInterval(checkInterval);
+      clearInterval(progressInterval);
+      showStatus('failed');
+      
+      // Show error message if available
+      if (data.error_message) {
+        document.getElementById('errorMessage').textContent = data.error_message;
+      }
+      
+    } else if (checkCount >= maxChecks) {
+      // Timeout reached
+      clearInterval(checkInterval);
+      clearInterval(progressInterval);
+      showStatus('failed');
+      
+      document.getElementById('errorMessage').textContent = 
+        lang === 'en' 
+          ? 'Payment verification timed out. Please check your mobile money app or contact support.'
+          : 'La vérification du paiement a expiré. Veuillez vérifier votre application mobile money ou contacter le support.';
+    }
+    
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    
+    if (checkCount >= maxChecks) {
+      clearInterval(checkInterval);
+      clearInterval(progressInterval);
+      showStatus('failed');
+    }
+  }
+}
+
+function checkNow() {
+  // Manual check
+  checkPaymentStatus();
+}
+
+function retryPayment() {
+  // Go back to seat selection to retry payment
+  window.location.href = `/${lang}/booking/seats/{{ booking.trip_id if booking else '' }}`;
+}
+
+function goBack() {
+  // Go back to search or home
+  window.location.href = `/${lang}/`;
+}
+
+// Start checking when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  if (bookingId && bookingId !== "null") {
+    // Initial check
+    checkPaymentStatus();
+    
+    // Set up periodic checking every 10 seconds
+    checkInterval = setInterval(checkPaymentStatus, 10000);
+    
+    // Update progress bar every second
+    progressInterval = setInterval(updateProgress, 1000);
+  } else {
+    showStatus('failed');
+    document.getElementById('errorMessage').textContent = 
+      lang === 'en' 
+        ? 'No booking information found.'
+        : 'Aucune information de réservation trouvée.';
+  }
+});
+
+// Clean up intervals when page is unloaded
+window.addEventListener('beforeunload', function() {
+  if (checkInterval) clearInterval(checkInterval);
+  if (progressInterval) clearInterval(progressInterval);
+});
+</script>
+{% endblock %}

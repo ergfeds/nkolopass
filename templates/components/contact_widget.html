@@ -1,0 +1,303 @@
+<!-- Floating Contact Widget -->
+<div class="contact-widget" id="contactWidget">
+  <!-- Contact Button -->
+  <div class="contact-button" id="contactButton" onclick="toggleContactWidget()">
+    <i class="fas fa-headset"></i>
+    <span class="contact-text">{{ 'Contact Us' if current_language=='en' else 'Contactez-Nous' }}</span>
+  </div>
+  
+  <!-- Contact Panel -->
+  <div class="contact-panel" id="contactPanel">
+    <div class="contact-header">
+      <h6 class="mb-0">
+        <i class="fas fa-comments me-2"></i>
+        {{ 'Contact Us' if current_language=='en' else 'Contactez-Nous' }}
+      </h6>
+      <button class="btn-close btn-close-white" onclick="toggleContactWidget()"></button>
+    </div>
+    
+    <div class="contact-body">
+      <p class="text-muted small mb-3">
+        {{ 'Need help? Get in touch with our support team.' if current_language=='en' else 'Besoin d\'aide ? Contactez notre équipe de support.' }}
+      </p>
+      
+      <div class="contact-options">
+        <!-- Phone Contact -->
+        <div class="contact-option" id="phoneContact" style="display: none;">
+          <a href="#" id="phoneLink" class="contact-link">
+            <div class="contact-icon bg-success">
+              <i class="fas fa-phone"></i>
+            </div>
+            <div class="contact-info">
+              <strong id="phoneNumber">Loading...</strong>
+              <small>{{ 'Tap to call' if current_language=='en' else 'Appuyez pour appeler' }}</small>
+            </div>
+          </a>
+        </div>
+        
+        <!-- Email Contact -->
+        <div class="contact-option" id="emailContact" style="display: none;">
+          <a href="#" id="emailLink" class="contact-link">
+            <div class="contact-icon bg-primary">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="contact-info">
+              <strong id="emailAddress">Loading...</strong>
+              <small>{{ 'Send us an email' if current_language=='en' else 'Envoyez-nous un email' }}</small>
+            </div>
+          </a>
+        </div>
+        
+        <!-- WhatsApp Contact -->
+        <div class="contact-option" id="whatsappContact" style="display: none;">
+          <a href="#" id="whatsappLink" class="contact-link">
+            <div class="contact-icon bg-success">
+              <i class="fab fa-whatsapp"></i>
+            </div>
+            <div class="contact-info">
+              <strong id="whatsappNumber">Loading...</strong>
+              <small>{{ 'Chat on WhatsApp' if current_language=='en' else 'Chattez sur WhatsApp' }}</small>
+            </div>
+          </a>
+        </div>
+      </div>
+      
+      <div class="contact-footer mt-3">
+        <small class="text-muted">
+          {{ 'Available 24/7 for your assistance' if current_language=='en' else 'Disponible 24h/24 pour vous aider' }}
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.contact-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.contact-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50px;
+  padding: 15px 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 60px;
+  justify-content: center;
+}
+
+.contact-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+}
+
+.contact-button i {
+  font-size: 1.2rem;
+}
+
+.contact-text {
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  opacity: 1;
+  margin-left: 10px;
+}
+
+.contact-panel {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  width: 320px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(20px) scale(0.9);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.contact-panel.active {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  visibility: visible;
+}
+
+.contact-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 15px 15px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.contact-body {
+  padding: 20px;
+}
+
+.contact-option {
+  margin-bottom: 15px;
+}
+
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+}
+
+.contact-link:hover {
+  background: #f8f9fa;
+  transform: translateX(5px);
+  color: inherit;
+  text-decoration: none;
+}
+
+.contact-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.1rem;
+}
+
+.contact-info strong {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.contact-info small {
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.contact-footer {
+  text-align: center;
+  padding-top: 15px;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .contact-widget {
+    bottom: 15px;
+    right: 15px;
+  }
+  
+  .contact-panel {
+    width: 280px;
+    right: -10px;
+  }
+  
+  .contact-button {
+    padding: 12px 16px;
+  }
+}
+
+/* Animation for contact options */
+.contact-option {
+  animation: slideInUp 0.3s ease forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.contact-option:nth-child(1) { animation-delay: 0.1s; }
+.contact-option:nth-child(2) { animation-delay: 0.2s; }
+.contact-option:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes slideInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
+
+<script>
+let contactWidgetOpen = false;
+
+function toggleContactWidget() {
+  const panel = document.getElementById('contactPanel');
+  const button = document.getElementById('contactButton');
+  
+  contactWidgetOpen = !contactWidgetOpen;
+  
+  if (contactWidgetOpen) {
+    panel.classList.add('active');
+    button.style.borderRadius = '50%';
+  } else {
+    panel.classList.remove('active');
+    button.style.borderRadius = '50px';
+  }
+}
+
+// Close widget when clicking outside
+document.addEventListener('click', function(event) {
+  const widget = document.getElementById('contactWidget');
+  if (!widget.contains(event.target) && contactWidgetOpen) {
+    toggleContactWidget();
+  }
+});
+
+// Load contact settings from API
+async function loadContactSettings() {
+  try {
+    const response = await fetch('/api/contact-settings');
+    const settings = await response.json();
+    
+    // Update phone contact
+    if (settings.phone) {
+      document.getElementById('phoneContact').style.display = 'block';
+      document.getElementById('phoneNumber').textContent = settings.phone;
+      document.getElementById('phoneLink').href = `tel:${settings.phone}`;
+    }
+    
+    // Update email contact
+    if (settings.email) {
+      document.getElementById('emailContact').style.display = 'block';
+      document.getElementById('emailAddress').textContent = settings.email;
+      document.getElementById('emailLink').href = `mailto:${settings.email}`;
+    }
+    
+    // Update WhatsApp contact (use whatsapp number or fallback to phone)
+    const whatsappNum = settings.whatsapp || settings.phone;
+    if (whatsappNum) {
+      document.getElementById('whatsappContact').style.display = 'block';
+      document.getElementById('whatsappNumber').textContent = whatsappNum;
+      const cleanNumber = whatsappNum.replace(/[^\d]/g, ''); // Remove non-digits
+      document.getElementById('whatsappLink').href = `https://wa.me/${cleanNumber}`;
+    }
+    
+  } catch (error) {
+    console.error('Error loading contact settings:', error);
+    // Hide widget if no settings available
+    document.getElementById('contactWidget').style.display = 'none';
+  }
+}
+
+// Initialize contact widget
+document.addEventListener('DOMContentLoaded', function() {
+  loadContactSettings();
+});
+</script>

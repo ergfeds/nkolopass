@@ -1,0 +1,267 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Contact Settings - Nkolo Pass Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-phone me-2"></i>Contact Settings
+                </h2>
+                <a href="{{ url_for('admin_bp.dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cog me-2"></i>Contact Widget Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" novalidate>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Support Phone Number</label>
+                                        <input type="tel" name="support_phone" class="form-control" 
+                                               value="{{ contact_settings.get('support_phone', '') }}" 
+                                               placeholder="+237 6XX XXX XXX">
+                                        <small class="form-text text-muted">Phone number for customer support calls</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Support Email</label>
+                                        <input type="email" name="support_email" class="form-control" 
+                                               value="{{ contact_settings.get('support_email', '') }}" 
+                                               placeholder="support@nkolopass.com">
+                                        <small class="form-text text-muted">Email address for customer support</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">WhatsApp Number</label>
+                                        <input type="tel" name="whatsapp_number" class="form-control" 
+                                               value="{{ contact_settings.get('whatsapp_number', '') }}" 
+                                               placeholder="+237 6XX XXX XXX">
+                                        <small class="form-text text-muted">WhatsApp number (can be same as phone)</small>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Business Hours</label>
+                                        <input type="text" name="business_hours" class="form-control" 
+                                               value="{{ contact_settings.get('business_hours', '24/7') }}" 
+                                               placeholder="Mon-Fri 8AM-6PM">
+                                        <small class="form-text text-muted">Display business hours to customers</small>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input type="checkbox" name="widget_enabled" class="form-check-input" id="widget_enabled" 
+                                               {{ 'checked' if contact_settings.get('widget_enabled', 'true') == 'true' else '' }}>
+                                        <label class="form-check-label" for="widget_enabled">
+                                            <strong>Enable Contact Widget</strong>
+                                            <small class="d-block text-muted">Show floating contact widget on website</small>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Widget Position</label>
+                                    <select name="widget_position" class="form-select">
+                                        <option value="bottom-right" {{ 'selected' if contact_settings.get('widget_position') == 'bottom-right' else '' }}>Bottom Right</option>
+                                        <option value="bottom-left" {{ 'selected' if contact_settings.get('widget_position') == 'bottom-left' else '' }}>Bottom Left</option>
+                                    </select>
+                                    <small class="form-text text-muted">Position of the contact widget on the page</small>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" name="action" value="save" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>Save Settings
+                                    </button>
+                                    
+                                    <button type="submit" name="action" value="test" class="btn btn-success">
+                                        <i class="fas fa-eye me-1"></i>Preview Widget
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Contact Widget Preview
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="contact-preview">
+                                <div class="preview-widget">
+                                    <div class="preview-button">
+                                        <i class="fas fa-headset"></i>
+                                        <span>Contact</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="preview-panel mt-3">
+                                    <div class="preview-header">
+                                        <strong>Contact Us</strong>
+                                    </div>
+                                    <div class="preview-body">
+                                        <div class="preview-option" id="previewPhone" style="display: none;">
+                                            <i class="fas fa-phone text-success"></i>
+                                            <span>Call Us</span>
+                                        </div>
+                                        <div class="preview-option" id="previewEmail" style="display: none;">
+                                            <i class="fas fa-envelope text-primary"></i>
+                                            <span>Email Us</span>
+                                        </div>
+                                        <div class="preview-option" id="previewWhatsApp" style="display: none;">
+                                            <i class="fab fa-whatsapp text-success"></i>
+                                            <span>WhatsApp</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-chart-line me-2"></i>Contact Statistics
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small">Widget Status:</span>
+                                <span class="badge bg-{{ 'success' if contact_settings.get('widget_enabled') == 'true' else 'secondary' }}">
+                                    {{ 'Enabled' if contact_settings.get('widget_enabled') == 'true' else 'Disabled' }}
+                                </span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small">Phone Configured:</span>
+                                <span class="badge bg-{{ 'success' if contact_settings.get('support_phone') else 'warning' }}">
+                                    {{ 'Yes' if contact_settings.get('support_phone') else 'No' }}
+                                </span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small">Email Configured:</span>
+                                <span class="badge bg-{{ 'success' if contact_settings.get('support_email') else 'warning' }}">
+                                    {{ 'Yes' if contact_settings.get('support_email') else 'No' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.contact-preview {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+}
+
+.preview-widget {
+    margin-bottom: 15px;
+}
+
+.preview-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 25px;
+    padding: 10px 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.preview-panel {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+}
+
+.preview-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 15px;
+    font-size: 0.9rem;
+}
+
+.preview-body {
+    padding: 15px;
+}
+
+.preview-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.preview-option:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update preview when form changes
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.querySelector('input[name="support_phone"]');
+    const emailInput = document.querySelector('input[name="support_email"]');
+    const whatsappInput = document.querySelector('input[name="whatsapp_number"]');
+    
+    function updatePreview() {
+        const previewPhone = document.getElementById('previewPhone');
+        const previewEmail = document.getElementById('previewEmail');
+        const previewWhatsApp = document.getElementById('previewWhatsApp');
+        
+        previewPhone.style.display = phoneInput.value ? 'flex' : 'none';
+        previewEmail.style.display = emailInput.value ? 'flex' : 'none';
+        previewWhatsApp.style.display = whatsappInput.value ? 'flex' : 'none';
+    }
+    
+    phoneInput.addEventListener('input', updatePreview);
+    emailInput.addEventListener('input', updatePreview);
+    whatsappInput.addEventListener('input', updatePreview);
+    
+    // Initial update
+    updatePreview();
+});
+</script>
+{% endblock %}

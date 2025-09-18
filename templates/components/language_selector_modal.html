@@ -1,0 +1,118 @@
+<!-- Language Selection Modal for First-Time Visitors -->
+<div class="modal fade" id="languageModal" tabindex="-1" aria-labelledby="languageModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-gradient text-white border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h5 class="modal-title fw-bold" id="languageModalLabel">
+          <i class="fas fa-globe me-2"></i>Choose Your Language / Choisissez Votre Langue
+        </h5>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="mb-4">
+          <div class="language-icon mb-3">
+            <i class="fas fa-language" style="font-size: 3rem; color: #667eea;"></i>
+          </div>
+          <p class="mb-4 text-muted">
+            Welcome to Nkolo Pass! Please select your preferred language.<br>
+            <small>Bienvenue sur Nkolo Pass ! Veuillez sélectionner votre langue préférée.</small>
+          </p>
+        </div>
+        
+        <div class="row g-3">
+          <div class="col-6">
+            <button type="button" class="btn btn-outline-primary btn-lg w-100 language-btn" data-lang="en" onclick="selectLanguage('en')">
+              <div class="d-flex flex-column align-items-center">
+                <span class="flag-icon mb-2">🇺🇸</span>
+                <strong>English</strong>
+                <small class="text-muted">United States</small>
+              </div>
+            </button>
+          </div>
+          <div class="col-6">
+            <button type="button" class="btn btn-outline-primary btn-lg w-100 language-btn" data-lang="fr" onclick="selectLanguage('fr')">
+              <div class="d-flex flex-column align-items-center">
+                <span class="flag-icon mb-2">🇫🇷</span>
+                <strong>Français</strong>
+                <small class="text-muted">France</small>
+              </div>
+            </button>
+          </div>
+        </div>
+        
+        <div class="mt-4">
+          <small class="text-muted">
+            You can change this later in the navigation menu.<br>
+            <em>Vous pouvez changer cela plus tard dans le menu de navigation.</em>
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.language-btn {
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+  padding: 1.5rem 1rem;
+}
+
+.language-btn:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+}
+
+.language-btn.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.flag-icon {
+  font-size: 2rem;
+}
+
+.modal-content {
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.modal-header {
+  border-radius: 0;
+}
+</style>
+
+<script>
+function selectLanguage(lang) {
+  // Mark button as selected
+  document.querySelectorAll('.language-btn').forEach(btn => {
+    btn.classList.remove('selected');
+  });
+  document.querySelector(`[data-lang="${lang}"]`).classList.add('selected');
+  
+  // Store language preference
+  if (typeof(Storage) !== "undefined") {
+    localStorage.setItem('preferredLanguage', lang);
+    localStorage.setItem('languageSelected', 'true');
+  }
+  
+  // Redirect to selected language
+  setTimeout(() => {
+    window.location.href = `/${lang}/`;
+  }, 500);
+}
+
+// Show modal for first-time visitors
+document.addEventListener('DOMContentLoaded', function() {
+  // Check if user has already selected language
+  const hasSelectedLanguage = localStorage.getItem('languageSelected');
+  const currentPath = window.location.pathname;
+  
+  // Only show modal on homepage and if language not previously selected
+  if (!hasSelectedLanguage && (currentPath === '/' || currentPath === '/en/' || currentPath === '/fr/')) {
+    const modal = new bootstrap.Modal(document.getElementById('languageModal'));
+    modal.show();
+  }
+});
+</script>

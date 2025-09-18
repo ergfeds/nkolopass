@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, session, g
-from models import db, Route, Trip, Booking, BusType, Operator, RouteOperatorAssignment, OperatorBusType, Customer
+from models import db, Operator, Route, Trip, Booking, Customer, OperatorBusType, OperatorLocation, RouteOperatorAssignment, BusType, SeatBlock
 from mesomb_payment import get_mesomb_client
 from datetime import datetime, timedelta
 import json
 from functools import wraps
+from jinja2 import TemplateNotFound
 
 user_bp = Blueprint('user', __name__)
 
@@ -36,6 +37,16 @@ def language_required(f):
         
         return f(*args, **kwargs)
     return decorated_function
+
+# Helper to render language-specific booking templates with fallback
+def render_booking_template(lang: str, template_name: str, **context):
+    """Try to render booking/<lang>/<template>.html, fallback to booking/<template>.html"""
+    lang_template = f"booking/{lang}/{template_name}"
+    default_template = f"booking/{template_name}"
+    try:
+        return render_template(lang_template, **context)
+    except TemplateNotFound:
+        return render_template(default_template, **context)
 
 # Root redirect to default language
 @user_bp.route('/')
@@ -79,14 +90,19 @@ def search_results(lang):
 def api_routes():
     """Get all active routes for search form"""
     routes = Route.query.filter_by(is_active=True).all()
-    return jsonify([{
-        'id': r.id,
-        'name': r.name,
-        'origin': r.origin,
-        'destination': r.destination,
-        'distance_km': r.distance_km,
-        'estimated_duration': r.estimated_duration
-    } for r in routes])
+    
+    # Extract unique cities for from and to dropdowns
+    from_cities = list(set([r.origin for r in routes]))
+    to_cities = list(set([r.destination for r in routes]))
+    
+    # Sort alphabetically
+    from_cities.sort()
+    to_cities.sort()
+    
+    return jsonify({
+        'from': from_cities,
+        'to': to_cities
+    })
 
 @user_bp.route('/api/upcoming-trips')
 def api_upcoming_trips():
@@ -185,6 +201,7 @@ def api_route_operators():
 @user_bp.route('/api/search-trips')
 def api_search_trips():
     """Search for available trips"""
+    
     from_city = request.args.get('from')
     to_city = request.args.get('to')
     operator_id = request.args.get('operator', type=int)
@@ -197,15 +214,37 @@ def api_search_trips():
     if not from_city or not to_city or not travel_date:
         return jsonify({'trips': [], 'error': 'Missing required parameters: from, to, date'}), 400
     
-    # Make operator optional for broader search
-    # if not operator_id:
-    #     return jsonify({'trips': [], 'error': 'Please select an operator'}), 400
+    # Validate agency is required
+    if not operator_id:
+        return jsonify({'trips': [], 'error': 'Please select an agency'}), 400
     
-    # Parse the date
+    # Prevent same origin and destination
+    if from_city == to_city:
+        return jsonify({'trips': [], 'error': 'Origin and destination cannot be the same'}), 400
+    
+    # Parse the date first
     try:
         date_obj = datetime.strptime(travel_date, '%Y-%m-%d').date()
     except ValueError:
         return jsonify({'trips': [], 'error': 'Invalid date format'}), 400
+    
+    # Get current time in Cameroon timezone using app configuration
+    from app import get_cameroon_time, get_cameroon_time_utc
+    current_time_cameroon = get_cameroon_time()
+    current_time_utc = get_cameroon_time_utc()
+    
+    # Add 30 minutes buffer for booking cutoff
+    booking_cutoff = current_time_utc + timedelta(minutes=30)
+    
+    print(f"Current time (Cameroon): {current_time_cameroon}")
+    print(f"Current time (UTC): {current_time_utc}")
+    print(f"Booking cutoff (UTC): {booking_cutoff}")
+    print(f"Search date: {date_obj}")
+    print(f"Current date (UTC): {current_time_utc.date()}")
+    
+    # Don't allow searching for past dates
+    if date_obj < current_time_utc.date():
+        return jsonify({'trips': [], 'message': 'Cannot search for trips in the past'})
     
     # Find the route
     route = Route.query.filter_by(
@@ -235,17 +274,24 @@ def api_search_trips():
     start_datetime = datetime.combine(date_obj, datetime.min.time())
     end_datetime = datetime.combine(date_obj, datetime.max.time())
     
-    # Build query - make operator optional
+    # For today's trips, use booking cutoff time; for future dates, use start of day
+    if date_obj == current_time_utc.date():
+        # Today's trips - exclude those departing within 30 minutes
+        min_departure_time = booking_cutoff
+        print(f"Today's search - minimum departure time: {min_departure_time}")
+    else:
+        # Future dates - show all trips from start of day
+        min_departure_time = start_datetime
+        print(f"Future date search - minimum departure time: {min_departure_time}")
+    
+    # Build query with required operator and exclude trips departing too soon
     query = Trip.query.filter(
         Trip.route_id == route.id,
-        Trip.departure_time >= start_datetime,
+        Trip.operator_id == operator_id,  # Operator is now required
+        Trip.departure_time >= min_departure_time,
         Trip.departure_time <= end_datetime,
         Trip.status == 'scheduled'
     )
-    
-    # Add operator filter if specified
-    if operator_id:
-        query = query.filter(Trip.operator_id == operator_id)
     
     trips = query.order_by(Trip.departure_time).all()
     
@@ -275,11 +321,13 @@ def api_search_trips():
             'operator_logo': trip_operator.logo_url if trip_operator else '',
             'bus_type_name': trip.bus_type.name if trip.bus_type else 'Standard',
             'bus_type_category': trip.bus_type.category if trip.bus_type else 'regular',
+            'amenities': trip.bus_type.get_amenities() if trip.bus_type else [],
             'virtual_bus_id': trip.virtual_bus_id,
             'seat_price': float(trip.seat_price),
             'available_seats': trip.available_seats,
             'total_seats': config.capacity if config else trip.available_seats,
-            'status': trip.status
+            'status': trip.status,
+            'stops': route.get_waypoints() if route else []
         })
     
     return jsonify({
@@ -319,11 +367,51 @@ def select_seats(lang):
     for booking in bookings:
         booked_seats.extend(booking.get_seat_numbers())
     
-    return render_template('booking/seat_selection.html', 
-                         trip=trip, 
-                         config=config,
-                         booked_seats=booked_seats,
-                         language=g.language)
+    # Get blocked seats (excluding current session)
+    session_id = session.get('session_id', '')
+    if not session_id:
+        import uuid
+        session_id = str(uuid.uuid4())
+        session['session_id'] = session_id
+    
+    blocked_seats = SeatBlock.get_blocked_seats_for_trip(trip_id, exclude_session=session_id)
+    
+    # Combine booked and blocked seats
+    unavailable_seats = list(set(booked_seats + blocked_seats))
+    
+    # Compute seating config numbers for template (avoid complex Jinja in JS)
+    seats_per_row = (config.seats_per_row if config else (trip.bus_type.seats_per_row if trip.bus_type else 4))
+    total_seats = (config.capacity if config else (trip.bus_type.capacity if trip.bus_type else 40))
+
+    # Build seat_layout identical to admin structure
+    if config and config.get_seat_layout():
+        seat_layout = config.get_seat_layout()
+    elif trip.bus_type and trip.bus_type.get_seat_layout():
+        seat_layout = trip.bus_type.get_seat_layout()
+    else:
+        # Generate simple default
+        seat_layout = []
+        rows = (total_seats + seats_per_row - 1) // seats_per_row
+        seat_num = 1
+        for r in range(rows):
+            row = []
+            seats_in_row = min(seats_per_row, total_seats - (r * seats_per_row))
+            for s in range(seats_in_row):
+                row.append({'number': seat_num, 'position': chr(65 + s), 'type': 'standard'})
+                seat_num += 1
+            seat_layout.append(row)
+
+    return render_booking_template(
+        g.language,
+        'seat_selection.html',
+        trip=trip,
+        config=config,
+        booked_seats=unavailable_seats,  # Include both booked and blocked seats
+        seat_layout=seat_layout,
+        seats_per_row=seats_per_row,
+        total_seats=total_seats,
+        language=g.language
+    )
 
 @user_bp.route('/<lang>/booking/passenger-details', methods=['GET', 'POST'])
 @language_required
@@ -347,7 +435,7 @@ def passenger_details(lang):
     selected_seats = session['selected_seats']
     total_amount = len(selected_seats) * trip.seat_price
     
-    return render_template('booking/passenger_details.html',
+    return render_booking_template(g.language, 'passenger_details.html',
                          trip=trip,
                          selected_seats=selected_seats,
                          total_amount=total_amount)
@@ -459,6 +547,14 @@ def payment(lang):
             
             # Update available seats
             trip.available_seats -= len(seat_list)
+            
+            # Send email ticket after successful payment
+            try:
+                from email_utils import send_ticket_email
+                send_ticket_email(booking)
+            except Exception as e:
+                print(f"Error sending ticket email: {str(e)}")
+                # Don't fail the booking if email fails
             db.session.commit()
             
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -534,7 +630,7 @@ def payment(lang):
     passenger_details = session['passenger_details']
     total_amount = len(selected_seats) * trip.seat_price
     
-    return render_template('booking/payment_new.html',
+    return render_booking_template(g.language, 'payment_new.html',
                          trip=trip,
                          selected_seats=selected_seats,
                          passenger_details=passenger_details,
@@ -561,6 +657,13 @@ def payment_success(booking_id):
             trip = Trip.query.get(booking.trip_id)
             seat_count = len(booking.get_seat_numbers())
             trip.available_seats -= seat_count
+            
+            # Send email ticket after confirmation
+            try:
+                from email_utils import send_ticket_email
+                send_ticket_email(booking)
+            except Exception as e:
+                print(f"Error sending ticket email: {str(e)}")
             
             db.session.commit()
     
@@ -600,14 +703,14 @@ def check_booking_status(lang, booking_id):
             return redirect(url_for('user.booking_confirmation', lang=g.language, booking_id=booking.id))
     
     # Payment still pending or failed
-    return render_template('booking/status_check.html', booking=booking)
+    return render_booking_template(g.language, 'status_check.html', booking=booking)
 
 @user_bp.route('/<lang>/booking/payment-tracking/<int:booking_id>')
 @language_required
 def payment_tracking(lang, booking_id):
     """Enhanced payment tracking page with real-time status updates"""
     booking = Booking.query.get_or_404(booking_id)
-    return render_template('booking/payment_tracking.html', booking=booking)
+    return render_booking_template(g.language, 'payment_tracking.html', booking=booking)
 
 @user_bp.route('/<lang>/booking/confirmation/<int:booking_id>')
 @language_required
@@ -618,17 +721,23 @@ def booking_confirmation(lang, booking_id):
     # Ensure booking is confirmed
     if booking.status != 'confirmed':
         flash('This booking is not yet confirmed.', 'warning')
-        return redirect(url_for('user.check_booking_status', lang=g.language, booking_id=booking.id))
+        return redirect(url_for('user.payment_status_check', lang=g.language, booking_id=booking.id))
     
-    return render_template('booking/confirmation.html', booking=booking)
+    return render_booking_template(g.language, 'confirmation.html', booking=booking)
 
-@user_bp.route('/<lang>/booking/ticket/<int:booking_id>')
+@user_bp.route('/<lang>/booking/payment-status/<int:booking_id>')
 @language_required
-def download_ticket(lang, booking_id):
-    """Download ticket as PDF"""
+def payment_status_check(lang, booking_id):
+    """Payment status checking page for users who left and returned"""
     booking = Booking.query.get_or_404(booking_id)
-    # TODO: Generate PDF ticket
-    return jsonify({'message': 'Ticket generation coming soon'})
+    
+    # If already confirmed, redirect to confirmation page
+    if booking.status == 'confirmed':
+        return redirect(url_for('user.booking_confirmation', lang=g.language, booking_id=booking.id))
+    
+    return render_booking_template(g.language, 'payment_status.html', booking=booking)
+
+# Removed old download_ticket route - now handled by view_ticket with download functionality
 
 @user_bp.route('/<lang>/bookings')
 @language_required
@@ -662,7 +771,7 @@ def generate_booking_reference():
 # Session management for seat selection
 @user_bp.route('/api/select-seats', methods=['POST'])
 def api_select_seats():
-    """Store selected seats in session"""
+    """Store selected seats in session and block them temporarily"""
     data = request.json
     trip_id = data.get('trip_id')
     seats = data.get('seats', [])
@@ -675,16 +784,33 @@ def api_select_seats():
     if not trip:
         return jsonify({'error': 'Trip not found'}), 404
     
+    # Get session ID
+    session_id = session.get('session_id', '')
+    if not session_id:
+        import uuid
+        session_id = str(uuid.uuid4())
+        session['session_id'] = session_id
+    
     # Get already booked seats
     bookings = Booking.query.filter_by(trip_id=trip_id, status='confirmed').all()
     booked_seats = []
     for booking in bookings:
         booked_seats.extend(booking.get_seat_numbers())
     
-    # Check if any selected seat is already booked
+    # Get blocked seats (excluding current session)
+    blocked_seats = SeatBlock.get_blocked_seats_for_trip(trip_id, exclude_session=session_id)
+    
+    # Check if any selected seat is already booked or blocked
+    unavailable_seats = set(booked_seats + blocked_seats)
     for seat in seats:
-        if seat in booked_seats:
-            return jsonify({'error': f'Seat {seat} is already booked'}), 400
+        if seat in unavailable_seats:
+            return jsonify({'error': f'Seat {seat} is no longer available'}), 400
+    
+    # Block the selected seats for 6 minutes
+    try:
+        SeatBlock.block_seats(trip_id, seats, session_id)
+    except Exception as e:
+        return jsonify({'error': 'Failed to reserve seats. Please try again.'}), 500
     
     # Store in session
     session['selected_seats'] = seats
@@ -695,7 +821,12 @@ def api_select_seats():
     if lang not in SUPPORTED_LANGUAGES:
         lang = DEFAULT_LANGUAGE
     
-    return jsonify({'success': True, 'redirect': url_for('user.passenger_details', lang=lang)})
+    return jsonify({
+        'success': True, 
+        'redirect': url_for('user.passenger_details', lang=lang),
+        'blocked_until': (datetime.utcnow() + timedelta(minutes=6)).isoformat(),
+        'message': 'Seats reserved for 6 minutes'
+    })
 
 # Language preference
 @user_bp.route('/api/set-language', methods=['POST'])
@@ -866,17 +997,46 @@ def mesomb_webhook():
 
 @user_bp.route('/api/payment-status/<int:booking_id>')
 def api_payment_status(booking_id):
-    """API endpoint to check payment status for AJAX calls"""
+    """API endpoint to check payment status for AJAX calls with intelligent status checking"""
     booking = Booking.query.get_or_404(booking_id)
     
-    # Determine status message and actions based on MeSomb status
+    # For pending payments, only check for SUCCESS - don't mark as failed prematurely
+    if (booking.payment_status == 'pending' and booking.payment_reference and 
+        booking.created_at and (datetime.utcnow() - booking.created_at).total_seconds() > 20):
+        
+        try:
+            from mesomb_payment import get_mesomb_client
+            mesomb = get_mesomb_client()
+            
+            # Try to get updated status from MeSomb - focus on SUCCESS detection
+            status_result = mesomb.check_transaction_status(booking.payment_reference)
+            
+            if status_result and isinstance(status_result, dict):
+                mesomb_status = status_result.get('status', '').upper()
+                
+                # ONLY update if we get a SUCCESS - let MeSomb handle failures via webhooks
+                if mesomb_status == 'SUCCESS':
+                    booking.payment_status = 'paid'
+                    booking.status = 'confirmed'
+                    db.session.commit()
+                    print(f"✅ Payment SUCCESS detected for booking {booking.id}")
+                # For any other status (PENDING, FAILED, etc.), keep current status
+                # Let the 120-second window complete naturally
+                
+        except Exception as e:
+            print(f"MeSomb status check error (non-critical): {str(e)}")
+            # Continue with current booking status - errors are non-critical
+    
+    # Determine status message and actions based on current booking status
     status_info = {
         'booking_id': booking.id,
         'payment_status': booking.payment_status,
         'booking_status': booking.status,
         'payment_reference': booking.payment_reference,
         'total_amount': booking.total_amount,
-        'is_confirmed': booking.status == 'confirmed'
+        'is_confirmed': booking.status == 'confirmed',
+        'created_at': booking.created_at.isoformat() if booking.created_at else None,
+        'time_elapsed': int((datetime.utcnow() - booking.created_at).total_seconds()) if booking.created_at else 0
     }
     
     # Add MeSomb-specific status information based on official statuses
@@ -927,3 +1087,522 @@ def api_payment_status(booking_id):
         })
     
     return jsonify(status_info)
+
+@user_bp.route('/api/booking-status/<int:booking_id>')
+def api_booking_status(booking_id):
+    """API endpoint to check booking payment status - for AJAX polling"""
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        
+        # If already confirmed, return success
+        if booking.status == 'confirmed':
+            return jsonify({
+                'booking_status': 'confirmed',
+                'payment_status': 'paid',
+                'is_confirmed': True,
+                'mesomb_status': 'SUCCESS',
+                'message': 'Payment confirmed successfully'
+            })
+        
+        # If payment reference exists, check with MeSomb
+        if booking.payment_reference:
+            try:
+                from mesomb_payment import get_mesomb_client
+                mesomb = get_mesomb_client()
+                
+                # Check transaction status with MeSomb
+                status_result = mesomb.check_transaction_status(booking.payment_reference)
+                
+                if status_result and status_result.get('success'):
+                    mesomb_status = status_result.get('status', 'UNKNOWN')
+                    
+                    if mesomb_status == 'SUCCESS':
+                        # Update booking to confirmed
+                        booking.payment_status = 'paid'
+                        booking.status = 'confirmed'
+                        
+                        # Update available seats
+                        trip = Trip.query.get(booking.trip_id)
+                        if trip:
+                            seat_count = len(booking.get_seat_numbers())
+                            trip.available_seats -= seat_count
+                        
+                        # Send email ticket after confirmation
+                        try:
+                            from email_utils import send_ticket_email
+                            send_ticket_email(booking)
+                        except Exception as e:
+                            print(f"Error sending ticket email: {str(e)}")
+                        
+                        db.session.commit()
+                        
+                        return jsonify({
+                            'booking_status': 'confirmed',
+                            'payment_status': 'paid',
+                            'is_confirmed': True,
+                            'mesomb_status': 'SUCCESS',
+                            'message': 'Payment confirmed successfully'
+                        })
+                    
+                    elif mesomb_status == 'FAILED':
+                        # Payment failed
+                        booking.payment_status = 'failed'
+                        booking.status = 'failed'
+                        db.session.commit()
+                        
+                        return jsonify({
+                            'booking_status': 'failed',
+                            'payment_status': 'failed',
+                            'is_confirmed': False,
+                            'mesomb_status': 'FAILED',
+                            'message': 'Payment failed',
+                            'error_message': status_result.get('message', 'Payment was not successful')
+                        })
+                    
+                    else:
+                        # Still pending
+                        return jsonify({
+                            'booking_status': booking.status,
+                            'payment_status': booking.payment_status,
+                            'is_confirmed': False,
+                            'mesomb_status': mesomb_status,
+                            'message': 'Payment is still being processed'
+                        })
+                
+                else:
+                    # Error checking status
+                    return jsonify({
+                        'booking_status': booking.status,
+                        'payment_status': booking.payment_status,
+                        'is_confirmed': False,
+                        'mesomb_status': 'UNKNOWN',
+                        'message': 'Unable to verify payment status',
+                        'error_message': 'Could not connect to payment provider'
+                    })
+                    
+            except Exception as e:
+                print(f"Error checking MeSomb status: {str(e)}")
+                return jsonify({
+                    'booking_status': booking.status,
+                    'payment_status': booking.payment_status,
+                    'is_confirmed': False,
+                    'mesomb_status': 'ERROR',
+                    'message': 'Error checking payment status',
+                    'error_message': str(e)
+                })
+        
+        else:
+            # No payment reference yet
+            return jsonify({
+                'booking_status': booking.status,
+                'payment_status': booking.payment_status,
+                'is_confirmed': False,
+                'mesomb_status': 'PENDING',
+                'message': 'Waiting for payment initiation'
+            })
+            
+    except Exception as e:
+        print(f"Error in booking status API: {str(e)}")
+        return jsonify({
+            'error': True,
+            'message': 'Error checking booking status',
+            'error_message': str(e)
+        }), 500
+
+@user_bp.route('/api/contact-settings')
+def api_contact_settings():
+    """API endpoint to get contact settings for the widget"""
+    import os
+    
+    contact_settings = {}
+    env_path = '.env'
+    
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    if key in ['SUPPORT_PHONE', 'SUPPORT_EMAIL', 'WHATSAPP_NUMBER', 'BUSINESS_HOURS', 'CONTACT_WIDGET_ENABLED']:
+                        contact_settings[key.lower()] = value
+    
+    # Only return settings if widget is enabled
+    widget_enabled = contact_settings.get('contact_widget_enabled', 'true').lower() == 'true'
+    
+    if not widget_enabled:
+        return jsonify({'enabled': False})
+    
+    return jsonify({
+        'enabled': True,
+        'phone': contact_settings.get('support_phone', ''),
+        'email': contact_settings.get('support_email', ''),
+        'whatsapp': contact_settings.get('whatsapp_number', ''),
+        'business_hours': contact_settings.get('business_hours', '24/7')
+    })
+
+# My Bookings Management
+@user_bp.route('/<lang>/my-bookings')
+@language_required
+def my_bookings_search(lang):
+    """My bookings page with search functionality"""
+    search_query = request.args.get('search', '').strip()
+    booking_ref = request.args.get('ref', '').strip()
+    verify_input = request.args.get('verify', '').strip()
+    status_filter = request.args.get('status', '').strip()
+    
+    bookings = []
+    
+    # Search by phone/email or booking reference
+    if search_query or booking_ref:
+        query = Booking.query.join(Customer).join(Trip).join(Route).join(Operator)
+        
+        if booking_ref:
+            # Search by booking reference with optional verification
+            query = query.filter(Booking.booking_reference.ilike(f'%{booking_ref}%'))
+            
+            if verify_input:
+                # Additional verification with phone or email
+                query = query.filter(
+                    db.or_(
+                        Customer.phone.ilike(f'%{verify_input}%'),
+                        Customer.email.ilike(f'%{verify_input}%')
+                    )
+                )
+        elif search_query:
+            # Search by phone or email
+            query = query.filter(
+                db.or_(
+                    Customer.phone.ilike(f'%{search_query}%'),
+                    Customer.email.ilike(f'%{search_query}%')
+                )
+            )
+        
+        # Apply status filter if provided
+        if status_filter:
+            query = query.filter(Booking.status == status_filter)
+        
+        # Order by creation date (newest first)
+        bookings = query.order_by(Booking.created_at.desc()).all()
+    
+    return render_booking_template(
+        g.language,
+        'my_bookings.html',
+        bookings=bookings,
+        now=datetime.utcnow()
+    )
+
+# Individual ticket view
+@user_bp.route('/<lang>/booking/ticket/<int:booking_id>')
+@language_required
+def view_ticket(lang, booking_id):
+    """View individual ticket in POS style"""
+    try:
+        booking = Booking.query.get_or_404(booking_id)
+        print(f"DEBUG: Found booking {booking.id} - {booking.booking_reference}")
+        print(f"DEBUG: Booking status: {booking.status}")
+        print(f"DEBUG: Trip: {booking.trip.route.origin} -> {booking.trip.route.destination}")
+        
+        # Try direct template rendering first for debugging
+        try:
+            return render_template('booking/ticket.html', 
+                                 booking=booking, 
+                                 current_language=g.language,
+                                 site_name="Nkolo Pass")
+        except Exception as template_error:
+            print(f"Template error: {str(template_error)}")
+            return render_booking_template(
+                g.language,
+                'ticket.html',
+                booking=booking
+            )
+    except Exception as e:
+        print(f"ERROR in view_ticket: {str(e)}")
+        flash(f'Error loading ticket: {str(e)}', 'error')
+        return redirect(url_for('user.my_bookings_search', lang=g.language))
+
+# Seat change functionality
+@user_bp.route('/<lang>/booking/change-seats/<int:booking_id>')
+@language_required
+def change_seats(lang, booking_id):
+    """Change seats for existing booking"""
+    booking = Booking.query.get_or_404(booking_id)
+    
+    # Verify booking is confirmed and trip hasn't departed
+    if booking.status != 'confirmed':
+        flash('Only confirmed bookings can be modified', 'error')
+        return redirect(url_for('user.my_bookings_search', lang=g.language))
+    
+    if booking.trip.departure_time <= datetime.utcnow():
+        flash('Cannot modify bookings for past trips', 'error')
+        return redirect(url_for('user.my_bookings_search', lang=g.language))
+    
+    # Get current seat layout and booked seats
+    trip = booking.trip
+    config = OperatorBusType.query.filter_by(
+        operator_id=trip.operator_id,
+        bus_type_id=trip.bus_type_id
+    ).first()
+    
+    # Get booked seats (excluding current booking)
+    other_bookings = Booking.query.filter(
+        Booking.trip_id == trip.id,
+        Booking.status == 'confirmed',
+        Booking.id != booking.id
+    ).all()
+    
+    booked_seats = []
+    for other_booking in other_bookings:
+        booked_seats.extend(other_booking.get_seat_numbers())
+    
+    # Get blocked seats
+    session_id = session.get('session_id', '')
+    if not session_id:
+        import uuid
+        session_id = str(uuid.uuid4())
+        session['session_id'] = session_id
+    
+    blocked_seats = SeatBlock.get_blocked_seats_for_trip(trip.id, exclude_session=session_id)
+    unavailable_seats = list(set(booked_seats + blocked_seats))
+    
+    # Build seat layout
+    seats_per_row = (config.seats_per_row if config else (trip.bus_type.seats_per_row if trip.bus_type else 4))
+    total_seats = (config.capacity if config else (trip.bus_type.capacity if trip.bus_type else 40))
+    
+    if config and config.get_seat_layout():
+        seat_layout = config.get_seat_layout()
+    elif trip.bus_type and trip.bus_type.get_seat_layout():
+        seat_layout = trip.bus_type.get_seat_layout()
+    else:
+        # Generate simple default
+        seat_layout = []
+        rows = (total_seats + seats_per_row - 1) // seats_per_row
+        seat_num = 1
+        for r in range(rows):
+            row = []
+            seats_in_row = min(seats_per_row, total_seats - (r * seats_per_row))
+            for s in range(seats_in_row):
+                row.append({'number': seat_num, 'position': chr(65 + s), 'type': 'standard'})
+                seat_num += 1
+            seat_layout.append(row)
+    
+    return render_booking_template(
+        g.language,
+        'change_seats.html',
+        booking=booking,
+        trip=trip,
+        config=config,
+        booked_seats=unavailable_seats,
+        current_seats=booking.get_seat_numbers(),
+        seat_layout=seat_layout,
+        seats_per_row=seats_per_row,
+        total_seats=total_seats
+    )
+
+# Trip change functionality
+@user_bp.route('/<lang>/booking/change-trip/<int:booking_id>')
+@language_required
+def change_trip(lang, booking_id):
+    """Change trip for existing booking (same operator, same price)"""
+    booking = Booking.query.get_or_404(booking_id)
+    
+    # Verify booking is confirmed and trip hasn't departed
+    if booking.status != 'confirmed':
+        flash('Only confirmed bookings can be modified', 'error')
+        return redirect(url_for('user.my_bookings_search', lang=g.language))
+    
+    if booking.trip.departure_time <= datetime.utcnow():
+        flash('Cannot modify bookings for past trips', 'error')
+        return redirect(url_for('user.my_bookings_search', lang=g.language))
+    
+    # Find alternative trips (same operator, same route, same price, future dates)
+    alternative_trips = Trip.query.filter(
+        Trip.operator_id == booking.trip.operator_id,
+        Trip.route_id == booking.trip.route_id,
+        Trip.seat_price == booking.trip.seat_price,
+        Trip.departure_time > datetime.utcnow(),
+        Trip.id != booking.trip.id
+    ).order_by(Trip.departure_time.asc()).all()
+    
+    # Filter trips with enough available seats
+    available_trips = []
+    required_seats = len(booking.get_seat_numbers())
+    
+    for trip in alternative_trips:
+        # Count booked seats
+        trip_bookings = Booking.query.filter_by(trip_id=trip.id, status='confirmed').all()
+        booked_count = sum(len(b.get_seat_numbers()) for b in trip_bookings)
+        
+        # Get trip capacity
+        config = OperatorBusType.query.filter_by(
+            operator_id=trip.operator_id,
+            bus_type_id=trip.bus_type_id
+        ).first()
+        
+        capacity = (config.capacity if config else (trip.bus_type.capacity if trip.bus_type else 40))
+        available_seats = capacity - booked_count
+        
+        if available_seats >= required_seats:
+            available_trips.append({
+                'trip': trip,
+                'available_seats': available_seats
+            })
+    
+    return render_booking_template(
+        g.language,
+        'change_trip.html',
+        booking=booking,
+        alternative_trips=available_trips,
+        required_seats=required_seats
+    )
+
+# API endpoints for seat and trip changes
+@user_bp.route('/<lang>/api/change-seats', methods=['POST'])
+@language_required
+def api_change_seats(lang):
+    """API endpoint to process seat changes"""
+    try:
+        data = request.json
+        booking_id = data.get('booking_id')
+        new_seats = data.get('new_seats', [])
+        
+        if not booking_id or not new_seats:
+            return jsonify({'success': False, 'message': 'Invalid data'}), 400
+        
+        booking = Booking.query.get_or_404(booking_id)
+        
+        # Verify booking can be modified
+        if booking.status != 'confirmed':
+            return jsonify({'success': False, 'message': 'Only confirmed bookings can be modified'}), 400
+        
+        if booking.trip.departure_time <= datetime.utcnow() + timedelta(hours=2):
+            return jsonify({'success': False, 'message': 'Cannot modify bookings less than 2 hours before departure'}), 400
+        
+        # Check if new seats are available
+        other_bookings = Booking.query.filter(
+            Booking.trip_id == booking.trip.id,
+            Booking.status == 'confirmed',
+            Booking.id != booking.id
+        ).all()
+        
+        booked_seats = []
+        for other_booking in other_bookings:
+            booked_seats.extend(other_booking.get_seat_numbers())
+        
+        # Check availability
+        for seat in new_seats:
+            if seat in booked_seats:
+                return jsonify({'success': False, 'message': f'Seat {seat} is no longer available'}), 400
+        
+        # Update booking with new seats
+        booking.seat_numbers = json.dumps(new_seats)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Seats changed successfully',
+            'new_seats': new_seats
+        })
+        
+    except Exception as e:
+        print(f"Error changing seats: {str(e)}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+@user_bp.route('/<lang>/api/change-trip', methods=['POST'])
+@language_required
+def api_change_trip(lang):
+    """API endpoint to process trip changes"""
+    try:
+        data = request.json
+        booking_id = data.get('booking_id')
+        new_trip_id = data.get('new_trip_id')
+        
+        if not booking_id or not new_trip_id:
+            return jsonify({'success': False, 'message': 'Invalid data'}), 400
+        
+        booking = Booking.query.get_or_404(booking_id)
+        new_trip = Trip.query.get_or_404(new_trip_id)
+        
+        # Verify booking can be modified
+        if booking.status != 'confirmed':
+            return jsonify({'success': False, 'message': 'Only confirmed bookings can be modified'}), 400
+        
+        if booking.trip.departure_time <= datetime.utcnow() + timedelta(hours=2):
+            return jsonify({'success': False, 'message': 'Cannot modify bookings less than 2 hours before departure'}), 400
+        
+        # Verify new trip is valid (same operator, route, price)
+        if (new_trip.operator_id != booking.trip.operator_id or
+            new_trip.route_id != booking.trip.route_id or
+            new_trip.seat_price != booking.trip.seat_price):
+            return jsonify({'success': False, 'message': 'Invalid trip selection'}), 400
+        
+        # Check if seats are available on new trip
+        required_seats = len(booking.get_seat_numbers())
+        new_trip_bookings = Booking.query.filter_by(trip_id=new_trip.id, status='confirmed').all()
+        booked_count = sum(len(b.get_seat_numbers()) for b in new_trip_bookings)
+        
+        # Get trip capacity
+        config = OperatorBusType.query.filter_by(
+            operator_id=new_trip.operator_id,
+            bus_type_id=new_trip.bus_type_id
+        ).first()
+        
+        capacity = (config.capacity if config else (new_trip.bus_type.capacity if new_trip.bus_type else 40))
+        available_seats = capacity - booked_count
+        
+        if available_seats < required_seats:
+            return jsonify({'success': False, 'message': 'Not enough seats available on selected trip'}), 400
+        
+        # Update booking with new trip
+        booking.trip_id = new_trip.id
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Trip changed successfully',
+            'new_trip_date': new_trip.departure_time.strftime('%d/%m/%Y %H:%M')
+        })
+        
+    except Exception as e:
+        print(f"Error changing trip: {str(e)}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+# Booking Management Verification Route
+@user_bp.route('/<lang>/manage-booking')
+@language_required
+def manage_booking_verify(lang):
+    """Verify booking reference and redirect to management interface"""
+    booking_ref = request.args.get('ref', '').strip()
+    verify_input = request.args.get('verify', '').strip()
+    
+    if not booking_ref or not verify_input:
+        flash('Please provide both booking reference and phone/email for verification', 'error')
+        return redirect(url_for('index', lang=g.language))
+    
+    # Find booking by reference
+    booking = Booking.query.filter_by(booking_reference=booking_ref).first()
+    
+    if not booking:
+        flash('Booking reference not found', 'error')
+        return redirect(url_for('index', lang=g.language))
+    
+    # Verify phone or email matches
+    customer = booking.customer
+    if not customer:
+        flash('Booking verification failed', 'error')
+        return redirect(url_for('index', lang=g.language))
+    
+    # Check if verify_input matches phone or email
+    phone_match = customer.phone and verify_input in customer.phone
+    email_match = customer.email and verify_input.lower() in customer.email.lower()
+    
+    if not (phone_match or email_match):
+        flash('Phone number or email does not match our records', 'error')
+        return redirect(url_for('index', lang=g.language))
+    
+    # Verification successful - redirect to booking management
+    return render_booking_template(
+        g.language,
+        'booking_management.html',
+        booking=booking,
+        now=datetime.utcnow()
+    )
