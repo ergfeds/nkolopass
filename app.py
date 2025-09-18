@@ -4,23 +4,37 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import datetime, timedelta
 from functools import wraps
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'nkolo-pass-secret-key-change-in-production'
 
-# MesomB Payment Configuration
-MESOMB_APPLICATION_KEY = '544e29bff5c61dc2d2759b34b3fb60649c915519'
-MESOMB_ACCESS_KEY = '09576120-d5dd-4ae9-9de7-46e6e79effaa'
-MESOMB_SECRET_KEY = 'a12d1f8f-dedc-4749-bab5-affa9d98d73c'
-MESOMB_BASE_URL = 'https://mesomb.hachther.com'
+# Use environment variables for production
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nkolo-pass-secret-key-change-in-production')
+
+# MesomB Payment Configuration - Use environment variables
+MESOMB_APPLICATION_KEY = os.environ.get('MESOMB_APPLICATION_KEY', '544e29bff5c61dc2d2759b34b3fb60649c915519')
+MESOMB_ACCESS_KEY = os.environ.get('MESOMB_ACCESS_KEY', '09576120-d5dd-4ae9-9de7-46e6e79effaa')
+MESOMB_SECRET_KEY = os.environ.get('MESOMB_SECRET_KEY', 'a12d1f8f-dedc-4749-bab5-affa9d98d73c')
+MESOMB_BASE_URL = os.environ.get('MESOMB_BASE_URL', 'https://mesomb.hachther.com')
 
 app.config['MESOMB_APPLICATION_KEY'] = MESOMB_APPLICATION_KEY
 app.config['MESOMB_ACCESS_KEY'] = MESOMB_ACCESS_KEY
 app.config['MESOMB_SECRET_KEY'] = MESOMB_SECRET_KEY
 app.config['MESOMB_BASE_URL'] = MESOMB_BASE_URL
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///nkolo_pass.db'
+# Database configuration - Use PostgreSQL in production if DATABASE_URL is set
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # Handle both postgres:// and postgresql:// URLs
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/nkolo_pass.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -68,13 +82,10 @@ def inject_globals():
         'current_year': datetime.now().year
     }
 
-if __name__ == '__main__':
+def init_database():
+    """Initialize database and create default data"""
     with app.app_context():
         db.create_all()
-        
-        # Note: Admin authentication is now handled in admin_routes.py
-        # Default credentials: email='admin@nkolopass.com', password='admin123'
-        print("Admin login: email='admin@nkolopass.com', password='admin123'")
         
         # Create default bus types if not exist
         if not BusType.query.first():
@@ -98,5 +109,10 @@ if __name__ == '__main__':
             print("Default bus types created")
         
         print("Database initialized successfully!")
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
+        print("Admin login: email='admin@nkolopass.com', password='admin123'")
+
+if __name__ == '__main__':
+    init_database()
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    app.run(debug=debug, host='0.0.0.0', port=port)
