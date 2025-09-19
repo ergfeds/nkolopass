@@ -883,6 +883,8 @@ def bulk_delete_trips():
         deleted_count = 0
         skipped_count = 0
         
+        from models import SeatBlock
+        
         for trip_id in trip_ids:
             trip = Trip.query.get(trip_id)
             if trip:
@@ -891,9 +893,21 @@ def bulk_delete_trips():
                     skipped_count += 1
                     continue
                 
-                # Delete trip if no bookings
-                db.session.delete(trip)
-                deleted_count += 1
+                try:
+                    # Delete related seat blocks first to avoid foreign key constraint issues
+                    seat_blocks = SeatBlock.query.filter_by(trip_id=trip.id).all()
+                    for seat_block in seat_blocks:
+                        db.session.delete(seat_block)
+                    
+                    # Now delete the trip
+                    db.session.delete(trip)
+                    deleted_count += 1
+                    
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"Error deleting trip {trip_id}: {str(e)}")
+                    skipped_count += 1
+                    continue
         
         db.session.commit()
         
@@ -931,6 +945,12 @@ def delete_trip(id):
     if trip.bookings:
         flash('Cannot delete trip with existing bookings', 'error')
         return redirect(url_for('admin_bp.trips'))
+    
+    # Delete related seat blocks first to avoid foreign key constraint issues
+    from models import SeatBlock
+    seat_blocks = SeatBlock.query.filter_by(trip_id=trip.id).all()
+    for seat_block in seat_blocks:
+        db.session.delete(seat_block)
     
     db.session.delete(trip)
     db.session.commit()
@@ -1300,3 +1320,36 @@ def operator_bus_type_seat_map(operator_id, config_id):
     return render_template('admin/operators/seat_map.html', 
                          operator=operator, 
                          config=config)
+
+@admin_bp.route('/maintenance/cleanup-seat-blocks', methods=['POST'])
+def cleanup_seat_blocks():
+    """Admin route to clean up orphaned and expired seat blocks"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_bp.login'))
+    
+    try:
+        from models import SeatBlock, Trip
+        
+        # Clean up expired seat blocks
+        expired_count = SeatBlock.cleanup_expired()
+        
+        # Clean up orphaned seat blocks (where trip no longer exists)
+        orphaned_blocks = db.session.query(SeatBlock).outerjoin(Trip).filter(Trip.id.is_(None)).all()
+        orphaned_count = len(orphaned_blocks)
+        
+        for block in orphaned_blocks:
+            db.session.delete(block)
+        
+        db.session.commit()
+        
+        total_cleaned = expired_count + orphaned_count
+        if total_cleaned > 0:
+            flash(f'Cleaned up {total_cleaned} seat blocks ({expired_count} expired, {orphaned_count} orphaned)', 'success')
+        else:
+            flash('No seat blocks needed cleanup', 'info')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error during cleanup: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_bp.dashboard'))

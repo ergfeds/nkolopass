@@ -420,7 +420,7 @@ class SeatBlock(db.Model):
     expires_at = db.Column(db.DateTime, nullable=False)
     
     # Relationships
-    trip = db.relationship('Trip', backref='seat_blocks')
+    trip = db.relationship('Trip', backref=db.backref('seat_blocks', cascade='all, delete-orphan'))
     
     def __init__(self, trip_id, seat_numbers, session_id, duration_minutes=6):
         self.trip_id = trip_id

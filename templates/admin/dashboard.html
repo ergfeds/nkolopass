@@ -233,6 +233,33 @@
             </div>
         </div>
     </div>
+    
+    <!-- Maintenance Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools"></i> System Maintenance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Perform system maintenance tasks to keep your application running smoothly.</p>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <form method="POST" action="{{ url_for('admin_bp.cleanup_seat_blocks') }}" style="display: inline;">
+                                <button type="submit" class="btn btn-outline-warning btn-sm" 
+                                        onclick="return confirm('Clean up expired and orphaned seat blocks?')">
+                                    <i class="fas fa-broom"></i> Cleanup Seat Blocks
+                                </button>
+                            </form>
+                            <small class="form-text text-muted">Remove expired and orphaned seat reservations</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
