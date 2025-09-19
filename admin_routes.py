@@ -4,6 +4,7 @@ from models import db, Operator, Route, Trip, Booking, Customer, OperatorBusType
 from forms import OperatorForm
 from datetime import datetime
 import os
+import json
 from werkzeug.utils import secure_filename
 
 admin_bp = Blueprint('admin_bp', __name__)
@@ -1064,17 +1065,50 @@ def add_bus_type():
     
     if request.method == 'POST':
         name = request.form.get('name')
+        category = request.form.get('category', 'regular')
         description = request.form.get('description')
-        base_price_multiplier = request.form.get('base_price_multiplier')
+        capacity = request.form.get('capacity', 48, type=int)
+        seats_per_row = request.form.get('seats_per_row', 4, type=int)
         
         bus_type = BusType(
             name=name,
+            category=category,
             description=description,
-            base_price_multiplier=float(base_price_multiplier) if base_price_multiplier else 1.0
+            capacity=capacity,
+            seats_per_row=seats_per_row
         )
+        
+        # Handle amenities
+        amenities = request.form.getlist('amenities')
+        if amenities:
+            bus_type.set_amenities(amenities)
+        
+        # Handle seat layout data if provided
+        seat_layout_data = request.form.get('seat_layout_data')
+        if seat_layout_data:
+            try:
+                layout = json.loads(seat_layout_data)
+                bus_type.set_seat_layout(layout)
+            except (json.JSONDecodeError, ValueError):
+                pass  # Use default layout
         
         db.session.add(bus_type)
         db.session.commit()
+        
+        # Handle operator assignments
+        assigned_operators = request.form.getlist('assigned_operators')
+        if assigned_operators:
+            for operator_id in assigned_operators:
+                operator_config = OperatorBusType(
+                    operator_id=int(operator_id),
+                    bus_type_id=bus_type.id,
+                    capacity=bus_type.capacity,
+                    seats_per_row=bus_type.seats_per_row
+                )
+                db.session.add(operator_config)
+            
+            db.session.commit()
+        
         flash('Bus type added successfully!', 'success')
         return redirect(url_for('admin_bp.bus_types'))
     
