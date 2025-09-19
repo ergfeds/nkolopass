@@ -255,6 +255,15 @@
                             </form>
                             <small class="form-text text-muted">Remove expired and orphaned seat reservations</small>
                         </div>
+                        <div class="col-md-4">
+                            <form method="POST" action="{{ url_for('admin_bp.clear_demo_data') }}" style="display: inline;">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                        onclick="return confirm('⚠️ WARNING: This will permanently delete ALL demo data including trips, routes, bookings, and customers. This action cannot be undone!\n\nAre you absolutely sure you want to continue?')">
+                                    <i class="fas fa-trash-alt"></i> Clear Demo Data
+                                </button>
+                            </form>
+                            <small class="form-text text-muted">⚠️ Permanently delete all trips, routes, bookings & customers</small>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1353,3 +1353,86 @@ def cleanup_seat_blocks():
         flash(f'Error during cleanup: {str(e)}', 'error')
     
     return redirect(url_for('admin_bp.dashboard'))
+
+@admin_bp.route('/maintenance/clear-demo-data', methods=['POST'])
+def clear_demo_data():
+    """Admin route to clear all demo/test data from database"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_bp.login'))
+    
+    try:
+        from models import (
+            Trip, Route, Booking, Customer, SeatBlock, 
+            RouteOperatorAssignment, OperatorLocation
+        )
+        
+        # Count data before deletion
+        trips_count = Trip.query.count()
+        routes_count = Route.query.count()
+        bookings_count = Booking.query.count()
+        customers_count = Customer.query.count()
+        seat_blocks_count = SeatBlock.query.count()
+        route_assignments_count = RouteOperatorAssignment.query.count()
+        operator_locations_count = OperatorLocation.query.count()
+        
+        total_records = trips_count + routes_count + bookings_count + customers_count + seat_blocks_count + route_assignments_count + operator_locations_count
+        
+        if total_records == 0:
+            flash('Database is already clean - no demo data found', 'info')
+            return redirect(url_for('admin_bp.dashboard'))
+        
+        # Delete in correct order to avoid foreign key constraints
+        
+        # 1. Delete seat blocks first (they reference trips)
+        if seat_blocks_count > 0:
+            SeatBlock.query.delete()
+        
+        # 2. Delete bookings (they reference trips and customers)
+        if bookings_count > 0:
+            Booking.query.delete()
+        
+        # 3. Delete trips (they reference routes and operators)
+        if trips_count > 0:
+            Trip.query.delete()
+        
+        # 4. Delete route operator assignments (they reference routes and operators)
+        if route_assignments_count > 0:
+            RouteOperatorAssignment.query.delete()
+        
+        # 5. Delete operator locations (they reference operators)
+        if operator_locations_count > 0:
+            OperatorLocation.query.delete()
+        
+        # 6. Delete routes
+        if routes_count > 0:
+            Route.query.delete()
+        
+        # 7. Delete customers (no foreign key dependencies)
+        if customers_count > 0:
+            Customer.query.delete()
+        
+        # Reset auto-increment IDs
+        try:
+            tables = [
+                'trip', 'route', 'booking', 'customer', 
+                'seat_block', 'route_operator_assignment', 'operator_location'
+            ]
+            
+            for table in tables:
+                try:
+                    db.session.execute(f"DELETE FROM sqlite_sequence WHERE name='{table}'")
+                except:
+                    pass  # Table might not exist in sqlite_sequence
+        except:
+            pass  # SQLite sequence reset is optional
+        
+        # Commit all changes
+        db.session.commit()
+        
+        flash(f'Successfully cleared all demo data! Removed {total_records} records ({trips_count} trips, {routes_count} routes, {bookings_count} bookings, {customers_count} customers)', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error clearing demo data: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_bp.dashboard'))
