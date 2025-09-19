@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
-from models import db, Operator, Route, Trip, Booking, Customer, OperatorBusType, OperatorLocation, RouteOperatorAssignment, BusType
+from models import db, Operator, Route, Trip, Booking, Customer, OperatorBusType, OperatorLocation, RouteOperatorAssignment, BusType, SeatBlock
 from forms import OperatorForm
 from datetime import datetime
 import os
@@ -1300,3 +1300,80 @@ def operator_bus_type_seat_map(operator_id, config_id):
     return render_template('admin/operators/seat_map.html', 
                          operator=operator, 
                          config=config)
+
+@admin_bp.route('/clear-database', methods=['POST'])
+def clear_database():
+    """Clear all demo data from the database"""
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_bp.login'))
+    
+    try:
+        # Get confirmation from form
+        confirmation = request.form.get('confirmation', '').strip().lower()
+        if confirmation != 'delete all data':
+            flash('Invalid confirmation text. Please type "DELETE ALL DATA" exactly.', 'error')
+            return redirect(url_for('admin_bp.dashboard'))
+        
+        # Count records before deletion for feedback
+        operators_count = Operator.query.count()
+        routes_count = Route.query.count()
+        trips_count = Trip.query.count()
+        bookings_count = Booking.query.count()
+        customers_count = Customer.query.count()
+        seat_blocks_count = SeatBlock.query.count()
+        operator_locations_count = OperatorLocation.query.count()
+        operator_bus_types_count = OperatorBusType.query.count()
+        route_assignments_count = RouteOperatorAssignment.query.count()
+        
+        # Delete all data in correct order (respecting foreign key constraints)
+        # 1. Delete seat blocks first (no foreign key dependencies)
+        SeatBlock.query.delete()
+        
+        # 2. Delete bookings (depends on trips and customers)
+        Booking.query.delete()
+        
+        # 3. Delete trips (depends on routes, operators, bus_types)
+        Trip.query.delete()
+        
+        # 4. Delete route operator assignments (depends on routes and operators)
+        RouteOperatorAssignment.query.delete()
+        
+        # 5. Delete operator bus type configurations (depends on operators and bus_types)
+        OperatorBusType.query.delete()
+        
+        # 6. Delete operator locations (depends on operators)
+        OperatorLocation.query.delete()
+        
+        # 7. Delete customers (no dependencies)
+        Customer.query.delete()
+        
+        # 8. Delete routes (no dependencies after assignments are deleted)
+        Route.query.delete()
+        
+        # 9. Delete operators (no dependencies after related records are deleted)
+        Operator.query.delete()
+        
+        # Note: We don't delete BusType as they are system-level configurations
+        
+        # Commit all deletions
+        db.session.commit()
+        
+        # Prepare success message
+        total_deleted = (operators_count + routes_count + trips_count + 
+                        bookings_count + customers_count + seat_blocks_count +
+                        operator_locations_count + operator_bus_types_count + 
+                        route_assignments_count)
+        
+        flash(f'Database cleared successfully! Deleted {total_deleted} records: '
+              f'{operators_count} operators, {routes_count} routes, {trips_count} trips, '
+              f'{bookings_count} bookings, {customers_count} customers, and related data.', 'success')
+        
+        print(f"Database cleared by admin. Deleted {total_deleted} records.")
+        
+    except Exception as e:
+        # Rollback in case of error
+        db.session.rollback()
+        flash(f'Error clearing database: {str(e)}', 'error')
+        print(f"Error clearing database: {str(e)}")
+    
+    return redirect(url_for('admin_bp.dashboard'))
