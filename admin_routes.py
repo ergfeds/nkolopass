@@ -74,8 +74,63 @@ def bookings():
     if 'admin_id' not in session:
         return redirect(url_for('admin_bp.login'))
     
-    bookings = Booking.query.order_by(Booking.created_at.desc()).all()
-    return render_template('admin/bookings/list.html', bookings=bookings)
+    # Get filter parameters from request
+    filters = {
+        'status': request.args.get('status', ''),
+        'payment_status': request.args.get('payment_status', ''),
+        'date_from': request.args.get('date_from', ''),
+        'date_to': request.args.get('date_to', ''),
+        'search': request.args.get('search', '')
+    }
+    
+    # Build query with filters
+    query = Booking.query
+    
+    if filters['status']:
+        query = query.filter(Booking.status == filters['status'])
+    
+    if filters['payment_status']:
+        query = query.filter(Booking.payment_status == filters['payment_status'])
+    
+    if filters['date_from']:
+        from datetime import datetime
+        date_from = datetime.strptime(filters['date_from'], '%Y-%m-%d').date()
+        query = query.filter(Booking.created_at >= date_from)
+    
+    if filters['date_to']:
+        from datetime import datetime
+        date_to = datetime.strptime(filters['date_to'], '%Y-%m-%d').date()
+        query = query.filter(Booking.created_at <= date_to)
+    
+    if filters['search']:
+        search_term = f"%{filters['search']}%"
+        query = query.join(Customer).filter(
+            db.or_(
+                Booking.booking_reference.ilike(search_term),
+                Customer.name.ilike(search_term),
+                Customer.email.ilike(search_term),
+                Customer.phone.ilike(search_term)
+            )
+        )
+    
+    # Get page number from request
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 25, type=int)
+    
+    # Apply pagination
+    bookings = query.order_by(Booking.created_at.desc()).paginate(
+        page=page, 
+        per_page=per_page, 
+        error_out=False
+    )
+    
+    # Create filters_dict for pagination links
+    filters_dict = {k: v for k, v in filters.items() if v}
+    
+    return render_template('admin/bookings/list.html', 
+                         bookings=bookings, 
+                         filters=filters,
+                         filters_dict=filters_dict)
 
 @admin_bp.route('/operators')
 def operators():
@@ -920,6 +975,49 @@ def booking_details(id):
     
     booking = Booking.query.get_or_404(id)
     return render_template('admin/bookings/details.html', booking=booking)
+
+@admin_bp.route('/bookings/<int:id>/cancel', methods=['POST'])
+def cancel_booking(id):
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_bp.login'))
+    
+    booking = Booking.query.get_or_404(id)
+    booking.status = 'cancelled'
+    db.session.commit()
+    
+    flash('Booking cancelled successfully', 'success')
+    return redirect(url_for('admin_bp.bookings'))
+
+@admin_bp.route('/bookings/<int:id>/confirm-payment', methods=['POST'])
+def confirm_booking_payment(id):
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_bp.login'))
+    
+    booking = Booking.query.get_or_404(id)
+    booking.payment_status = 'paid'
+    booking.status = 'confirmed'
+    db.session.commit()
+    
+    flash('Payment confirmed successfully', 'success')
+    return redirect(url_for('admin_bp.bookings'))
+
+@admin_bp.route('/bookings/<int:id>/delete', methods=['POST'])
+def delete_booking(id):
+    if 'admin_id' not in session:
+        return redirect(url_for('admin_bp.login'))
+    
+    booking = Booking.query.get_or_404(id)
+    
+    # Only allow deletion of cancelled bookings or pending bookings
+    if booking.status not in ['cancelled', 'pending']:
+        flash('Cannot delete confirmed bookings', 'error')
+        return redirect(url_for('admin_bp.bookings'))
+    
+    db.session.delete(booking)
+    db.session.commit()
+    
+    flash('Booking deleted successfully', 'success')
+    return redirect(url_for('admin_bp.bookings'))
 
 @admin_bp.route('/buses')
 def buses():
