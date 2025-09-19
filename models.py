@@ -163,8 +163,11 @@ class Route(db.Model):
     trips = db.relationship('Trip', backref='route', lazy=True)
 
     def get_waypoints(self):
-        if self.waypoints:
-            return json.loads(self.waypoints)
+        if self.waypoints and self.waypoints.strip():
+            try:
+                return json.loads(self.waypoints)
+            except (json.JSONDecodeError, ValueError):
+                return []
         return []
 
     def set_waypoints(self, waypoints_list):

@@ -219,7 +219,7 @@ def add_route():
             destination=destination,
             distance_km=float(distance_km) if distance_km else None,
             estimated_duration=int(estimated_duration) if estimated_duration else None,
-            waypoints=waypoints,
+            waypoints=waypoints.strip() if waypoints and waypoints.strip() else None,
             is_active=is_active
         )
         
@@ -257,7 +257,8 @@ def edit_route(id):
         route.destination = request.form.get('destination')
         route.distance_km = float(request.form.get('distance_km')) if request.form.get('distance_km') else None
         route.estimated_duration = int(request.form.get('estimated_duration')) if request.form.get('estimated_duration') else None
-        route.waypoints = request.form.get('waypoints')
+        waypoints_form = request.form.get('waypoints')
+        route.waypoints = waypoints_form.strip() if waypoints_form and waypoints_form.strip() else None
         route.is_active = request.form.get('is_active') == 'on'
         
         db.session.commit()
