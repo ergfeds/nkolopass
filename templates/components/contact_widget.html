@@ -266,11 +266,20 @@ async function loadContactSettings() {
     const response = await fetch('/api/contact-settings');
     const settings = await response.json();
     
+    // Check if widget is enabled
+    if (!settings.enabled) {
+      document.getElementById('contactWidget').style.display = 'none';
+      return;
+    }
+    
+    let hasAnyContact = false;
+    
     // Update phone contact
     if (settings.phone) {
       document.getElementById('phoneContact').style.display = 'block';
       document.getElementById('phoneNumber').textContent = settings.phone;
       document.getElementById('phoneLink').href = `tel:${settings.phone}`;
+      hasAnyContact = true;
     }
     
     // Update email contact
@@ -278,6 +287,7 @@ async function loadContactSettings() {
       document.getElementById('emailContact').style.display = 'block';
       document.getElementById('emailAddress').textContent = settings.email;
       document.getElementById('emailLink').href = `mailto:${settings.email}`;
+      hasAnyContact = true;
     }
     
     // Update WhatsApp contact (use whatsapp number or fallback to phone)
@@ -287,6 +297,23 @@ async function loadContactSettings() {
       document.getElementById('whatsappNumber').textContent = whatsappNum;
       const cleanNumber = whatsappNum.replace(/[^\d]/g, ''); // Remove non-digits
       document.getElementById('whatsappLink').href = `https://wa.me/${cleanNumber}`;
+      hasAnyContact = true;
+    }
+    
+    // Update business hours if provided
+    if (settings.business_hours) {
+      const footerText = document.querySelector('.contact-footer small');
+      if (footerText) {
+        const isEnglish = document.documentElement.lang === 'en';
+        footerText.textContent = isEnglish ? 
+          `Available ${settings.business_hours}` : 
+          `Disponible ${settings.business_hours}`;
+      }
+    }
+    
+    // Hide widget if no contact methods are available
+    if (!hasAnyContact) {
+      document.getElementById('contactWidget').style.display = 'none';
     }
     
   } catch (error) {

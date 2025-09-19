@@ -128,6 +128,30 @@ def health_check():
     """Health check endpoint for monitoring"""
     return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()}
 
+@app.route('/api/contact-settings')
+def contact_settings_api():
+    """API endpoint to get contact widget settings"""
+    from flask import jsonify
+    
+    # Get contact settings from environment variables
+    settings = {
+        'phone': os.getenv('SUPPORT_PHONE', ''),
+        'email': os.getenv('SUPPORT_EMAIL', ''),
+        'whatsapp': os.getenv('WHATSAPP_NUMBER', ''),
+        'business_hours': os.getenv('BUSINESS_HOURS', '24/7'),
+        'enabled': os.getenv('CONTACT_WIDGET_ENABLED', 'true').lower() == 'true',
+        'position': os.getenv('CONTACT_WIDGET_POSITION', 'bottom-right')
+    }
+    
+    # Only return enabled settings with values
+    if not settings['enabled']:
+        return jsonify({'enabled': False})
+    
+    # Filter out empty values
+    filtered_settings = {k: v for k, v in settings.items() if v}
+    
+    return jsonify(filtered_settings)
+
 # Add context processor for global template variables
 @app.context_processor
 def inject_globals():
