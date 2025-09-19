@@ -205,18 +205,22 @@ def add_route():
         return redirect(url_for('admin_bp.login'))
     
     if request.method == 'POST':
+        name = request.form.get('name')
         origin = request.form.get('origin')
         destination = request.form.get('destination')
-        distance = request.form.get('distance')
-        duration = request.form.get('duration')
-        base_price = request.form.get('base_price')
+        distance_km = request.form.get('distance_km')
+        estimated_duration = request.form.get('estimated_duration')
+        waypoints = request.form.get('waypoints')
+        is_active = request.form.get('is_active') == 'on'
         
         route = Route(
+            name=name or f"{origin} → {destination}",
             origin=origin,
             destination=destination,
-            distance=float(distance) if distance else None,
-            duration=int(duration) if duration else None,
-            base_price=float(base_price) if base_price else None
+            distance_km=float(distance_km) if distance_km else None,
+            estimated_duration=int(estimated_duration) if estimated_duration else None,
+            waypoints=waypoints,
+            is_active=is_active
         )
         
         db.session.add(route)
@@ -248,11 +252,13 @@ def edit_route(id):
     route = Route.query.get_or_404(id)
     
     if request.method == 'POST':
+        route.name = request.form.get('name') or f"{request.form.get('origin')} → {request.form.get('destination')}"
         route.origin = request.form.get('origin')
         route.destination = request.form.get('destination')
-        route.distance = float(request.form.get('distance')) if request.form.get('distance') else None
-        route.duration = int(request.form.get('duration')) if request.form.get('duration') else None
-        route.base_price = float(request.form.get('base_price')) if request.form.get('base_price') else None
+        route.distance_km = float(request.form.get('distance_km')) if request.form.get('distance_km') else None
+        route.estimated_duration = int(request.form.get('estimated_duration')) if request.form.get('estimated_duration') else None
+        route.waypoints = request.form.get('waypoints')
+        route.is_active = request.form.get('is_active') == 'on'
         
         db.session.commit()
         flash('Route updated successfully!', 'success')
